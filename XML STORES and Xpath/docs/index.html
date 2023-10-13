@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>SQLite Overview</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">XML and Xpath</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">XML and DTD basics</a>
+</li>
+<li>
+  <a href="parsingxmlwithR.html">Parsing XML with R</a>
+</li>
+<li>
+  <a href="quiz_stuff.html">XPath Examples</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">SQLite Overview</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#data-sources" id="toc-data-sources">Data Sources</a>
+<ul>
+<li><a href="#web-data-scraping" id="toc-web-data-scraping">Web data
+&amp; Scraping</a></li>
+</ul></li>
+<li><a href="#data-interchange" id="toc-data-interchange">Data
+Interchange</a></li>
+<li><a href="#structure-of-xml-document"
+id="toc-structure-of-xml-document">Structure of XML document</a>
+<ul>
+<li><a href="#elements-vs.-attributes"
+id="toc-elements-vs.-attributes">Elements vs. Attributes</a></li>
+</ul></li>
+<li><a href="#dtd" id="toc-dtd">DTD</a>
+<ul>
+<li><a href="#internal-vs.-external"
+id="toc-internal-vs.-external">Internal vs. External</a></li>
+<li><a href="#dtd-vs-xml-schema-definition-xsd"
+id="toc-dtd-vs-xml-schema-definition-xsd">DTD vs XML schema definition
+(XSD)</a></li>
+</ul></li>
+<li><a href="#dtd-syntax" id="toc-dtd-syntax">DTD Syntax</a>
+<ul>
+<li><a href="#sequence" id="toc-sequence">Sequence</a></li>
+<li><a href="#mixed-content" id="toc-mixed-content">Mixed
+Content</a></li>
+<li><a href="#attributes" id="toc-attributes">Attributes</a></li>
+<li><a href="#enumerated-tokens" id="toc-enumerated-tokens">Enumerated
+tokens</a></li>
+</ul></li>
+<li><a href="#best-practices" id="toc-best-practices">Best
+Practices</a></li>
+<li><a href="#parsing-an-xml-document"
+id="toc-parsing-an-xml-document">Parsing an XML Document</a>
+<ul>
+<li><a href="#approaches-to-parsing"
+id="toc-approaches-to-parsing">Approaches to Parsing</a></li>
+</ul></li>
+<li><a href="#mapping-ontologies-to-xml"
+id="toc-mapping-ontologies-to-xml">Mapping Ontologies to XML</a>
+<ul>
+<li><a href="#key-attributes" id="toc-key-attributes">Key
+Attributes</a></li>
+<li><a href="#unique-key-attributes"
+id="toc-unique-key-attributes">Unique Key Attributes</a></li>
+<li><a href="#booleans" id="toc-booleans">Booleans</a></li>
+<li><a href="#one-to-one-linked" id="toc-one-to-one-linked">One to One
+Linked</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p><a
+href="http://artificium.us/lessons/80.xml/l-80-101-basic-xml/l-80-101.html#Introduction">lesson
+link</a></p>
+<p><strong>XML</strong> is a markup language that uses elements and
+attributes to create a text file representing structured data.</p>
+<ul>
+<li>common format across organization - useful to know for data
+analytics.</li>
+<li>tags that create elements are defined by the creator of the file –
+creates flexibility, but can hinder efficient exchange between
+systems</li>
+</ul>
+<p><br></p>
+<div id="data-sources" class="section level1">
+<h1>Data Sources</h1>
+<p>Not all data in organization is stored within database managed by
+DBMS. Most data is instead stores in ad-hoc data files, spreadsheets,
+and on the web.</p>
+<p>Web based data is contained in unstructured HTML files served by web
+servers, and some data is in structured/semistructured XML
+documents.</p>
+<p><strong>Structured vs. Unstructured</strong>: data in database tables
+are structured, enforced by DBMS and defined within constraints. Other
+data may not be structured, or may be semistructured into a tabular
+format.</p>
+<div id="web-data-scraping" class="section level3">
+<h3>Web data &amp; Scraping</h3>
+<p>The web is a significant source of unstructured data:</p>
+<ul>
+<li><strong>Scraping</strong>: the process of interpreting web data
+through inspection and retrieval. Converts unstructured HTML to useful
+structured format.</li>
+<li>while data is publicly available, many info providers forbit web
+scraping or hinder it</li>
+</ul>
+<p><br></p>
+</div>
+</div>
+<div id="data-interchange" class="section level1">
+<h1>Data Interchange</h1>
+<p>Data must be interchanged and exported.</p>
+<ul>
+<li><strong>CSV</strong>: represent full tables or joins of tables.
+inherently tabular.</li>
+<li><strong>XML</strong>: hierarchical table structures, enforcement of
+constraints through DTD/XSD. Queries through XPath.</li>
+</ul>
+<p><br></p>
+</div>
+<div id="structure-of-xml-document" class="section level1">
+<h1>Structure of XML document</h1>
+<p>XML consists of elements and attributes</p>
+<p><strong>Elements</strong>: start tag with matching end tag, and
+contents enclosed between them.</p>
+<ul>
+<li><code>&lt;PHONE&gt;555-666-7777&lt;/PHONE&gt;</code></li>
+<li>not case sensitive</li>
+<li>elements can be nested</li>
+</ul>
+<p>XML docs start with the preamble `<?xml version = "1.0"?>, followed
+by optional DTD/XSD, followed by root element + child elements. If it
+follows these rules it is <strong>well-formed</strong>.</p>
+<p>Comments</p>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
+
+&lt;root&gt;
+  ...
+  &lt;!-- child elements --&gt;
+&lt;/root&gt;</code></pre>
+<div id="elements-vs.-attributes" class="section level2">
+<h2>Elements vs. Attributes</h2>
+<p>Elements may have associated <strong>attributes</strong>: providing
+information about the element via a name/value pair.</p>
+<ul>
+<li>attributes names must be unique w/in an element</li>
+<li><code>&lt;publisher pID = "p1001"&gt;</code> -pID is an
+attribute</li>
+<li>all attributes have data type “character”</li>
+</ul>
+<p><br></p>
+</div>
+</div>
+<div id="dtd" class="section level1">
+<h1>DTD</h1>
+<p><strong>DTD</strong> (document type definition) defines the structure
+of an XML document, including elements and structures. It contains:</p>
+<ul>
+<li><em>Elements</em>: tags, determining what is being structured</li>
+<li><em>Attributes</em>: extra info about element</li>
+<li><em>Entities</em>: shortcuts with special meaning</li>
+<li><em>PCDATA</em> parsed character data</li>
+<li><em>CDATA</em> character data to not parse</li>
+</ul>
+<p>The DTD can be internal within the XML or in a separate file. It
+defines the grammar on the XML using Extended Bachus-Naur form
+(EBNF).</p>
+<div id="internal-vs.-external" class="section level2">
+<h2>Internal vs. External</h2>
+<p><strong>Interal DTD</strong> appears at the top of XML file, under
+declaration for XML. Won’t appear in displayed code, but can be seen in
+text editor</p>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot;?&gt;
+
+&lt;!DOCTYPE writing [
+&lt;!ELEMENT writing (title,author+,pubdate?)&gt;
+&lt;!ATTLIST writing type CDATA #REQUIRED&gt;
+&lt;!ELEMENT title (#PCDATA)&gt;
+&lt;!ELEMENT author (authorfirstname, authorlastname)&gt;
+&lt;!ELEMENT authorfirstname (#PCDATA)&gt;
+&lt;!ELEMENT authorlastname (#PCDATA)&gt;
+&lt;!ELEMENT pubdate (month,day,year)&gt;
+&lt;!ELEMENT month (#PCDATA)&gt;
+&lt;!ELEMENT day (#PCDATA)&gt;
+&lt;!ELEMENT year (#PCDATA)&gt;
+]&gt;
+
+&lt;writing type = &#39;book&#39;&gt;
+  &lt;title&gt; The Joy of Data &lt;/title&gt;
+  &lt;author&gt;
+    &lt;authorfirstname&gt;J.&lt;/authorfirstname&gt;
+    &lt;authorlastname&gt;Datasmith&lt;/authorlastname&gt;
+  &lt;/author&gt;
+  &lt;pubdate&gt;
+    &lt;month&gt;12&lt;/month&gt;
+    &lt;day&gt;18&lt;/day&gt;
+    &lt;year&gt;2020&lt;/year&gt;
+  &lt;/pubdate&gt;
+&lt;/writing&gt;</code></pre>
+<p>In this example, DTD shows that document stores writing, with space
+for book type, title, author, publication date</p>
+<p><strong>External DTD</strong> is located in separate file, which is
+easier for sharing/standards. XML code references DTD in opening lines –
+eg. `xml &lt;!DOCTYPE writing SYSTEM “filename.dtd”&gt;</p>
+<pre class="xml"><code>&lt;!ELEMENT writing (title,author+,pubdate?)&gt;
+&lt;!ATTLIST writing type CDATA #REQUIRED&gt;
+&lt;!ELEMENT title (#PCDATA)&gt;
+&lt;!ELEMENT author (authorfirstname, authorlastname)&gt;
+&lt;!ELEMENT authorfirstname (#PCDATA)&gt;
+&lt;!ELEMENT authorlastname (#PCDATA)&gt;
+&lt;!ELEMENT pubdate (month,day,year)&gt;
+&lt;!ELEMENT month (#PCDATA)&gt;
+&lt;!ELEMENT day (#PCDATA)&gt;
+&lt;!ELEMENT year (#PCDATA)&gt;</code></pre>
+</div>
+<div id="dtd-vs-xml-schema-definition-xsd" class="section level2">
+<h2>DTD vs XML schema definition (XSD)</h2>
+<p>Some XML docs instead reference an XML schema:</p>
+<ul>
+<li>XSD are written in XML and are more powerful than DTD – more control
+over elements
+<ul>
+<li>supports data types + name spaces</li>
+</ul></li>
+<li>DTD and XSD allow declaration of elements and groups</li>
+<li>DTD is less complex to write and useful in specific data work</li>
+</ul>
+<p>DTD defines structure of document, while XML schema is more
+descriptive.</p>
+<p><br></p>
+</div>
+</div>
+<div id="dtd-syntax" class="section level1">
+<h1>DTD Syntax</h1>
+<p><strong>Cardinality</strong> adornments may follow an element.
+Default cardinality is 1 - eg. element must appear exactly one</p>
+<ul>
+<li><code>_*_</code> indicates cardinality of 0+</li>
+<li><code>+</code> indicates 1+</li>
+<li><code>?</code> indicates 0 or 1</li>
+</ul>
+<p><strong>An element with a value</strong> is indicated with
+<code>&lt;!ELEMENT foo (#PCDATA)&gt;</code>. The value is between the
+opening and closing tag within XML, eg.
+<code>&lt;foo&gt; content &lt;/foo&gt;</code>.</p>
+<div id="sequence" class="section level2">
+<h2>Sequence</h2>
+<p>A <strong>sequence</strong> in XML is an element followed by another
+element. Consider the below DTD, which specifies a sequence of four
+child elements:</p>
+<pre class="xml"><code>&lt;!DOCTYPE root [
+  &lt;!ELEMENT root (Author*)&gt;
+  &lt;!ELEMENT Author (authorID, name, org, email)&gt;
+  &lt;!ELEMENT authorID (#PCDATA)&gt;
+  &lt;!ELEMENT name (#PCDATA)&gt;
+  &lt;!ELEMENT org (#PCDATA)&gt;
+  &lt;!ELEMENT email (#PCDATA)&gt;
+]&gt;</code></pre>
+<p>This specifies that root element is <code>&lt;root&gt;</code>, which
+contains zero or more <code>&lt;Author&gt;</code> elements. The
+parentheses specify child elements, all of which must appear exactly
+once.</p>
+<p>An XML document conforming to the DTD would be:</p>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;root&gt;
+  &lt;Author&gt;
+    &lt;authorID&gt;3349&lt;/authorID&gt;
+    &lt;name&gt;Charles Mercer&lt;/name&gt;
+    &lt;org&gt;Oakton Partners&lt;/org&gt;
+    &lt;email&gt;cm@oakton.com.ca&lt;/email&gt;
+  &lt;/Author&gt;
+  &lt;Author&gt;
+    &lt;authorID&gt;1132&lt;/authorID&gt;
+    &lt;name&gt;Cindy Chen&lt;/name&gt;
+    &lt;org&gt;Alpen Presse&lt;/org&gt;
+    &lt;email&gt;cindy@alpen-presse.de&lt;/email&gt;
+  &lt;/Author&gt;
+&lt;/root&gt;</code></pre>
+<p>Another example of a valid XML document is below. This is fine due to
+the zero optional cardinality of Author.</p>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;root&gt;
+&lt;/root&gt;</code></pre>
+</div>
+<div id="mixed-content" class="section level2">
+<h2>Mixed Content</h2>
+<p>The <em>comma</em> (,) operator specifies a sequence in a DTD, while
+the <em>or</em> (|) operator specifies a choice. A DTD containing
+<em>foo | bar</em> means that either <em>foo</em> or <em>bar</em> must
+appear.</p>
+<pre class="xml"><code>&lt;!ELEMENT Author (authorID, name, (org|email)*)&gt;</code></pre>
+<p>In the example above, <em>author</em> may have zero or more of either
+<em>org</em> or <em>email</em> (including repeats and having both
+elements).</p>
+<p>To ensure at least one of either, use
+<code>&lt;!ELEMENT Author (authorID, name, org, email, (org|email)*)&gt;</code></p>
+</div>
+<div id="attributes" class="section level2">
+<h2>Attributes</h2>
+<p>Attributes are specified using
+<code>&lt;!ATTLIST element attribute default&gt;</code>.</p>
+<ul>
+<li>Attributes can have type <em>CDATA</em> (character data),
+<em>ID</em> (unique value), <em>IDREF</em> (reference to ID), or
+enumerated token.</li>
+<li>Constraints include <em>#REQUIRED</em>, <em>#FIXED</em> (finalized,
+value specified after keyword), <em>#IMPLIED</em> (optional)</li>
+<li>for example,
+<code>&lt;! ATTLIST Author authorID CDATA #REQUIRED&gt;</code> specifies
+the mandatory <em>authorID</em> attribute for Author.</li>
+</ul>
+</div>
+<div id="enumerated-tokens" class="section level2">
+<h2>Enumerated tokens</h2>
+<p>Enumerated tokens must be defined as an attribute, as no validation
+can occur for parsed character data.</p>
+<p>Below, <em>LearningAsset</em> has enumerated attribute
+<em>difficulty</em></p>
+<pre class="xml"><code>&lt;!DOCTYPE root [
+&lt;!ELEMENT root (LearningAsset*)&gt;
+&lt;!ELEMENT LearningAsset (…)&gt;
+&lt;!ATTLIST LearningAsset difficulty 
+(easy|medium|difficult) &quot;easy&quot;&gt;
+...
+]&gt;
+
+&lt;root&gt;
+  &lt;LearningAsset difficulty = &quot;medium&quot;&gt;
+    ...
+  &lt;/LearningAsset&gt;
+  &lt;LearningAsset&gt;
+    ...
+  &lt;/LearningAsset&gt;
+
+  ...
+&lt;/root&gt;</code></pre>
+<p><br></p>
+</div>
+</div>
+<div id="best-practices" class="section level1">
+<h1>Best Practices</h1>
+<p>It’s best to group repeated elements under common parent element to
+ease parsing.</p>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;!DOCTYPE note [
+&lt;!ELEMENT note (recipients,from,heading,body)&gt;
+&lt;!ELEMENTS recipients (to+)&gt;
+&lt;!ELEMENT to (#PCDATA)&gt;
+&lt;!ELEMENT from (#PCDATA)&gt;
+&lt;!ELEMENT heading (#PCDATA)&gt;
+&lt;!ELEMENT body (#PCDATA)&gt;
+]&gt;
+
+&lt;note&gt;
+  &lt;recipients&gt;
+    &lt;to&gt;Topher&lt;/to&gt;
+    &lt;to&gt;Pat&lt;/to&gt;
+    &lt;to&gt;Maria&lt;/to&gt;
+  &lt;/recipients&gt;
+  &lt;from&gt;Chris&lt;/from&gt;
+  &lt;heading&gt;Reminder&lt;/heading&gt;
+  &lt;body&gt;
+   Meeting today at 12 in WVH166!
+  &lt;/body&gt;
+&lt;/note&gt;</code></pre>
+<p><br></p>
+</div>
+<div id="parsing-an-xml-document" class="section level1">
+<h1>Parsing an XML Document</h1>
+<p>XML docs must be valid to be parsed easily by a program. <em>A XML
+doc can be well-formed without being valid!</em> In practice many XML
+files don’t have a DTD, which makes parsing much more difficult.</p>
+<div id="approaches-to-parsing" class="section level2">
+<h2>Approaches to Parsing</h2>
+<p>There are two general approaches to parsing: DOM and SAX</p>
+<p><strong>DOM Parsing</strong>: Document Object Model parsing where
+entire XML doc converted to in-memory tree data structure.</p>
+<ul>
+<li>entire tree in memory, can be traversed node-by-node or via
+XPath</li>
+<li>no events triggered as entire XML parsed.</li>
+<li>easier to use, but has more overhead</li>
+</ul>
+<p><strong>SAX</strong>: Simple API for XML, only one element parsed and
+loaded into memory at a time using callback functions</p>
+<ul>
+<li>preferred for very large XML documents, but difficult to parse as
+context is lost and XPath can’t be used</li>
+<li>events are triggered when XML is parsed
+<ul>
+<li>eg. when strat tag encountered, triggers event to call processing
+function for that tag</li>
+</ul></li>
+</ul>
+<p><br></p>
+</div>
+</div>
+<div id="mapping-ontologies-to-xml" class="section level1">
+<h1>Mapping Ontologies to XML</h1>
+<p><a
+href="http://artificium.us/lessons/80.xml/l-80-106-ontology-to-xml-patterns/l-80-106.html">Mapping
+Ontologies to XML</a></p>
+<p>Using attributes versus elements is suggestive, not prescriptive.
+Most choices of using attributes vs. elements are equally valid, and
+made using common convention.</p>
+<p>Primary keys, Foreign keys, and value sets should be represented by
+attributes; otherwise, they should be child elements.</p>
+<div id="key-attributes" class="section level2">
+<h2>Key Attributes</h2>
+<p>Keys should be represented as mandatory element attributes.</p>
+<pre class="xml"><code>&lt;!DOCTYPE root [
+  &lt;!ELEMENT root (Author*)&gt;
+  &lt;!ELEMENT Author
+      (name,org,email)&gt;
+  &lt;!ATTLIST Author authorID CDATA #REQUIRED&gt;
+  &lt;!ELEMENT name (#PCDATA)&gt;
+  &lt;!ELEMENT org (#PCDATA)&gt;
+  &lt;!ELEMENT email (#PCDATA)&gt;
+]&gt;</code></pre>
+<pre class="xml"><code>&lt;root&gt;
+  &lt;Author authorID=&quot;101&quot;&gt;
+    &lt;name&gt;Chloe Parker&lt;/name&gt;
+    &lt;org&gt;Northeastern University&lt;/org&gt;
+    &lt;email&gt;c.parker@neu.edu&lt;/email&gt;
+  &lt;/Author&gt;
+  &lt;Author authorID=&quot;102&quot;&gt;
+    &lt;name&gt;Alison Chan&lt;/name&gt;
+    &lt;org&gt;PWC Toronto&lt;/org&gt;
+    &lt;email&gt;chan.alison@pwc.com&lt;/email&gt;
+  &lt;/Author&gt;
+  …
+&lt;/root&gt;</code></pre>
+</div>
+<div id="unique-key-attributes" class="section level2">
+<h2>Unique Key Attributes</h2>
+<p>The value of an attribute can be either <em>CDATA</em> or <em>ID</em>
+(a unique value starting with a letter).</p>
+<ul>
+<li>In XML, the <em>ID</em> value must be unique within the entire
+document or data store, not just the table. Ideally use <em>ID</em> when
+possible, but not necessarily realistic for imported data tables with
+duplicate keys. * The <em>ID</em> value must start with a letter - could
+use table name + primary key</li>
+</ul>
+</div>
+<div id="booleans" class="section level2">
+<h2>Booleans</h2>
+<p>Use empty elements to represent boolean values.</p>
+<pre class="xml"><code>&lt;!DOCTYPE root [
+  &lt;!ELEMENT root (Author*)&gt;
+  &lt;!ELEMENT Author
+      (name,org,email,isDeployed?)&gt;
+  &lt;!ATTLIST Author authorID ID #REQUIRED&gt;
+  &lt;!ELEMENT name (#PCDATA)&gt;
+  &lt;!ELEMENT org (#PCDATA)&gt;
+  &lt;!ELEMENT email (#PCDATA)&gt;
+  &lt;!ELEMENT isDeployed EMPTY&gt;
+]&gt;</code></pre>
+<pre class="xml"><code>&lt;root&gt;
+  &lt;Author authorID=&quot;i101&quot;&gt;
+    &lt;name&gt;Chloe Parker&lt;/name&gt;
+    &lt;org&gt;Northeastern University&lt;/org&gt;
+    &lt;email&gt;c.parker@neu.edu&lt;/email&gt;
+  &lt;/Author&gt;
+  &lt; Author authorID =&quot;i102&quot;&gt;
+    &lt;name&gt;Alison Chan&lt;/name&gt;
+    &lt;org&gt;PWC Toronto&lt;/org&gt;
+    &lt;email&gt;chan.alison@pwc.com&lt;/email&gt;
+    &lt;isDeployed /&gt;
+  &lt;/Author&gt;
+  …
+&lt;/root&gt;</code></pre>
+</div>
+<div id="one-to-one-linked" class="section level2">
+<h2>One to One Linked</h2>
+<p>Use <em>IDREF</em> to implement a foreign key. Values used in
+<em>IDREF</em> are used to ensure they point to a valid <em>ID</em> in
+the document at the time the XML document is read. It must have the
+constraint #REQUIRED or #IMPLIED.</p>
+<pre class="xml"><code>&lt;!DOCTYPE root [
+  &lt;!ELEMENT root (Lesson*, Memo*)&gt;
+  &lt;!ELEMENT Lesson
+      (timeToComplete,title)&gt;
+  &lt;!ATTLIST Lesson lessonID ID #REQUIRED&gt;
+  &lt;!ELEMENT timeToComplete (#PCDATA)&gt;
+  &lt;!ELEMENT title (#PCDATA)&gt;
+  &lt;!ELEMENT Memo (contents,attachment*)&gt;
+  &lt;!ELEMENT contents (#PCDATA)&gt;
+  &lt;!ELEMENT attachment (#PCDATA)&gt;
+  &lt;!ATTLIST Memo lessonIDFK IDREF #REQUIRED&gt;
+]&gt;</code></pre>
+<pre class="xml"><code>&lt;root&gt;
+ &lt;Lesson lessonID=&quot;i293&quot;&gt;
+   ...
+ &lt;/Lesson&gt;
+ &lt;Lesson lessonID=&quot;i482&quot;&gt;
+   ...
+ &lt;/Lesson&gt;
+ ...
+ &lt;Memo lessonIDFK = &quot;i293&quot;&gt;
+   &lt;contents&gt;contents of memo&lt;/contents&gt;
+   &lt;attachment&gt;http://foo.bar.com/att1.docx&lt;/attachment&gt;
+   &lt;attachment&gt;http://foo.bar.com/att2.docx&lt;/attachment&gt;
+  &lt;/Memo&gt;
+  &lt;Memo lessonIDFK = &quot;i482&quot;&gt;
+    &lt;contents&gt;contents of memo&lt;/contents&gt;
+    &lt;attachment&gt;http://foo.bar.com/att1.docx&lt;/attachment&gt;
+    &lt;attachment&gt;http://foo.bar.com/att2.docx&lt;/attachment&gt;
+  &lt;/Memo&gt;
+ ...
+&lt;/root&gt;</code></pre>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

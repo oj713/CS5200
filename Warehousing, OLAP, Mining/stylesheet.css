@@ -1,0 +1,26 @@
+h1, h2, h3 {
+  color: #B6174B;
+}
+
+a {
+  color: #89C31D;
+}
+
+a:hover {
+  color: #89C31D;
+  text-decoration: none;
+}
+
+.navbar-default .navbar-nav>.active>a, .navbar-default .navbar-nav>.active>a:hover, .navbar-default .navbar-nav>.active>a:focus, .navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
+    color: #ffffff;
+    background-color: #5497A7;
+}
+
+.navbar-default {
+  background-color: #62A8AC;
+}
+
+.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
+    color: #ffffff;
+    background-color: transparent;
+}

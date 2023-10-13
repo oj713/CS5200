@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Estimating Availability and Reliability</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Indices and Storage</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Indexing Methods</a>
+</li>
+<li>
+  <a href="indexing_sqlite.html">Indexing in SQLite</a>
+</li>
+<li>
+  <a href="query_pp.html">Query Planning/Processing</a>
+</li>
+<li>
+  <a href="datastorage_disks_raid.html">Data Storage and RAID</a>
+</li>
+<li>
+  <a href="reliability_availability.html">Reliability and Availability</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Estimating Availability and Reliability</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#reliability-vs.-availability">Reliability vs. Availability</a></li>
+<li><a href="#estimating-availability">Estimating Availability</a>
+<ul>
+<li><a href="#system-availability">System Availability</a></li>
+<li><a href="#improving-availability">Improving Availability</a></li>
+</ul></li>
+<li><a href="#estimating-reliability">Estimating Reliability</a>
+<ul>
+<li><a href="#reliability-as-probability">Reliability as Probability</a></li>
+</ul></li>
+<li><a href="#service-level-agreements-sla">Service Level Agreements (SLA)</a></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/92.systems/l-92-505-reliability/l-92-505.html">lesson link</a></p>
+<p>It’s necessary to assess reliability and availability when designing systems. Both are measures of the degree to which a system is usable and perform tasks.</p>
+<div id="reliability-vs.-availability" class="section level2">
+<h2>Reliability vs. Availability</h2>
+<p><strong>Availability</strong>:</p>
+<ul>
+<li>measure of when a system is available to users/in an operable state</li>
+<li>usually expressed as a percentage, <em>e.g.</em> the 99.35% availability during business hours</li>
+<li>captures both “Mean Time to Failure” (MTTF) and “Mean Time to Restore” (MTTR)</li>
+</ul>
+<p><strong>Reliability</strong>:</p>
+<ul>
+<li>how long a system operates as expected betwween failures</li>
+<li>how well a system functions in terms of ‘uptime’</li>
+</ul>
+</div>
+<div id="estimating-availability" class="section level2">
+<h2>Estimating Availability</h2>
+<p>The empirical estimate of system availability is calculated as</p>
+<p><span class="math display">\[ A = 1 - \frac{\sum^{n}_{i = 1}f(t)_i}{T} \]</span> Where <span class="math inline">\(T\)</span> is the total time period over which availability is measured and <span class="math inline">\(f(t)_i\)</span> is the amount of time that the system wasn’t available due to <span class="math inline">\(i^{th}\)</span> failure.</p>
+<div id="system-availability" class="section level3">
+<h3>System Availability</h3>
+<p>A system is collection of interconnected components that must all be available for system to be available. Thereofre, system availability is the join probability that all <em>n</em> components are available at the same time</p>
+<p><span class="math display">\[A_{system} = \Pi ^n _{i = 1} A_i\]</span> ### Availability and MTTR/MBTF</p>
+<p>Availability can be defined in terms of reliability when reliability estimate exists but no downtime measures were recorded.</p>
+<p><span class="math display">\[A = \frac{MTBF}{MTBF + MTTR}\]</span></p>
+</div>
+<div id="improving-availability" class="section level3">
+<h3>Improving Availability</h3>
+<p>Address availability of weakest system component</p>
+<ul>
+<li>duplication and use of redundancy</li>
+<li>faster recoverability to reduce MTTR</li>
+<li>data backup to avoid info loss</li>
+<li>hot swap capability to repair components, reducing MTTR and MTBF</li>
+<li>continuous power through uninterruptable power supplies, backup sources</li>
+</ul>
+</div>
+</div>
+<div id="estimating-reliability" class="section level2">
+<h2>Estimating Reliability</h2>
+<p>Reliability can be captured by two measures - MTTF and MTBF</p>
+<ul>
+<li><p><strong>MTBF</strong>: measure of the average time that elapses between two consecutive system failures</p>
+<p><span class="math display">\[MTBF = \frac{T_{total} - T_{down}}{n}\]</span></p>
+<p>Where <span class="math inline">\(T_{total}\)</span> is total time of observation and <span class="math inline">\(T_{down}\)</span> is total time during which system wasn’t available.</p></li>
+<li><p><strong>MTTR</strong> represents the time duration to repair or resore a failed system component</p></li>
+</ul>
+<div id="reliability-as-probability" class="section level3">
+<h3>Reliability as Probability</h3>
+<p>Reliability can also be expressed as the likelihood that a system is functioning properly during time period <span class="math inline">\(t\)</span> given some measure of <em>MBTF</em></p>
+<p><span class="math display">\[R = e^{-t/MTBF}\]</span></p>
+</div>
+</div>
+<div id="service-level-agreements-sla" class="section level2">
+<h2>Service Level Agreements (SLA)</h2>
+<p>A SLA is an agreement between system provider and system purchaser containing service level objectives, which codify the quality of service requirements to avoid disputes.</p>
+<p>Species maintenance intervals, provider responsibilities, costs, and availability/reliability measures.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

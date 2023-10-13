@@ -1,0 +1,238 @@
+---
+title: "Creation and Selection"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Source](http://artificium.us/lessons/06.r/l-6-300-create-sqlitedb-in-r/l-6-300.html)
+
+# Creating a Database #
+
+**With R:**
+
+* Formed by connecting to db that doesn't exist
+* database files have extension *.db* or *.sqlitedb*
+
+```{r}
+library(RSQLite)
+
+fpath = ""
+dbfile = "committeeDB.sqlite"
+
+dbcon <- dbConnect(SQLite(), paste0(fpath, dbfile))
+```
+
+**With SQL**
+```{sql eval = FALSE}
+create database [if not exists] db_name;
+```
+
+After declaration, set context with `use` command:
+```{sql eval = FALSE}
+use db_name;
+```
+
+## Creating Tables ##
+
+SQL commands can be executed via `{sql}` code chunks or by using R methods. 
+
+### With {sql}
+
+`DROP` deletes tables that might already exist:
+
+```{sql connection = dbcon}
+drop table if exists Faculty
+```
+
+`CREATE TABLE` creates a table. Note each column listed and the primary key designation. 
+
+* each field requires the name of the field, type of the field, and field attributes 
+  * supported field constraints: `not null`, `unique`, `default default_value`, `auto_increment`
+* constraints must be assigned a unique name, preferably relevant 
+* Declaration of a primary key can either be in attribute definition or as a constraint declaration
+  * `id INT AUTO_INCREMENT PRIMARY KEY`
+  * `id INT AUTO_INCREMENT` ... `CONSTRAINT student_pk PRIMARY KEY (id)`
+  * composite keys must be declared as a constraint - pass in multiple arguments
+
+```{sql connection = dbcon}
+create table Faculty(
+  fid integer not null,
+  fname text not null,
+  lname text not null,
+  rank text,
+  primary key (fid)
+)
+```
+
+### With R Methods ###
+
+* `dbExecute()` submits and executes SQL data manipulation statement
+* `dbExecute()` and `dbGetQuery()` used for selection 
+
+```{r eval = FALSE}
+# using paste0 for clarify
+sql <- paste0(
+  "create table Faculty (",
+  "fid integer not null,",
+  "fname text not null,",
+  "lname text not null,",
+  "rank text,", %>% 
+  "primary key (fid)",
+  ")"
+)
+
+dbExecute(dbcon, sql)
+```
+
+### Foreign Key behaviour ###
+
+* SQLite doesn't check foreign key constraints by default. to enable, use `pragma` command before creating tables:
+
+```{sql connection = dbcon}
+pragma foreign_keys = on
+```
+
+We can specify foreign keys within table declaration.
+
+```{sql connection=dbcon}
+create table Committee (
+  name text not null,
+  level text,
+  chair integer not null,
+  primary key (name),
+  foreign key (chair) references Faculty(fid)
+)
+```
+
+To specify how a database should perform when a tuple referenced by a foreign key is updated or deleted, we can use **foreign key constraints**.
+
+* `on update [restrict | cascade | set null | set default]`
+* `on delete [restrict | cascade | set null | set default]`
+* `restrict` is default behaviour - attempts to modify/delete the referenced tuple would fail. 
+* `cascade` - cascade change through whole database by removing tuples referencing changed tuple 
+
+```{sql eval = FALSE}
+create table course (
+  cid integer, 
+  fid integer,
+  constraint c_f_pk primary key (cid, fid), 
+  constraint f_fk_f foreign key fid references Faculty(fid) on delete restrict
+);
+```
+
+## Insert Data ##
+
+**With \{sql\} chunks**
+
+```{sql connection = dbcon}
+insert into Faculty (fid, fname, lname, rank) values
+  (100,"Jose","Annunziato","Assistant"),
+  (200,"Dan","Feinberg","Adjunct"),
+  (300,"Martin","Schedlbauer","Full"),
+  (400,"Kathleen","Durant","Associate");
+```
+```{sql connection=dbcon}
+insert into Committee values
+  ("Hiring","College", 300),
+  ("Merit","College", 300),
+  ("Teaching","Department", 400);
+```
+
+**With R Methods**
+
+* `dbexecute()` returns number of rows affected - can use to determine efficacy
+* can also use `dbSendStatement()`
+
+```{r}
+# note use of single quotes
+sql <- paste0(
+  'insert into Committee values', 
+  '("Integrity","College",100),',
+  '("Research","College", 300),',
+  '("CATLR","University",400);'
+  )
+
+n <- dbExecute(dbcon, sql)
+
+if (n < 1)
+  print("Error during insert")
+```
+
+### Inserting with Default Values ###
+
+When creating a table, can specify default values for columns with `default`. 
+
+```{sql connection=dbcon}
+create table if not exists person (
+  pname text default "John Doe", 
+  page integer,
+  pstatus text default "alive"
+)
+```
+
+Use `insert default values` to insert a new row into table using default values specified or `NULL`.
+
+* This will not work for tables with a non-defaulting, non-null attribute.
+
+```{sql connection=dbcon}
+insert into person default values;
+```
+
+### Inserting new rows with `select` data ###
+
+For this example, we would like to backup the person table.
+
+```{sql connection=dbcon}
+create table person_backup(
+  pname text default "John Doe", 
+  page integer,
+  pstatus text default "alive"
+)
+```
+
+To insert data from one table into another, use
+
+```{sql connection=dbcon}
+insert into person_backup 
+select pname, page, pstatus
+  from person;
+```
+
+## Retrieving Data ##
+
+**With {sql}**
+```{sql connection=dbcon}
+select * from Faculty limit 3;
+```
+
+**With R Functions**
+
+* several available methods - most common is `dbGetQuery()`
+  * currently being discontinued 
+  
+```{r}
+sql <- "select * from Faculty"
+
+rs <- dbGetQuery(dbcon, sql) 
+
+# note that result is a dataframe!
+print (rs)
+```
+
+## Disconnecting ##
+
+* when database connection no longer needed, close it with `dbDisconnect()`. Frees up database itself + other resources
+
+```{r}
+dbDisconnect(dbcon)
+```
+
+```{r include = FALSE}
+file.remove("committeeDB.sqlite")
+```
+
+
+

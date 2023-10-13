@@ -1,0 +1,11 @@
+"0","CREATE TRIGGER module_duplicate_title_handling 
+  AFTER INSERT ON Module
+  FOR EACH ROW 
+  WHEN 1 < (SELECT COUNT(*) FROM Module 
+             WHERE title LIKE NEW.title
+                OR title LIKE NEW.title || "" (____-__-__)"")
+    BEGIN
+      UPDATE module
+         SET title = title || "" ("" || dateCreated || "")""
+       WHERE title = NEW.title;
+END;"

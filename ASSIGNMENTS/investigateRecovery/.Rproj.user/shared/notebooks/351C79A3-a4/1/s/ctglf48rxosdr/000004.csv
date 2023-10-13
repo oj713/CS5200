@@ -1,0 +1,4 @@
+"0","/* assumes that albums have >= 1 track */
+SELECT a.Title, COUNT(*) as NumTracks
+  FROM ALBUMS a INNER JOIN tracks t ON (a.AlbumId = t.AlbumId)
+ GROUP BY a.AlbumID"

@@ -1,0 +1,88 @@
+---
+title: "Triggers in MySQL"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Trigger recap: consists of 
+
+* **Event**: insert, delete, update
+* **Condition**: can be true/false statement or query, interpreted as true iff answer set is not empty
+* **Action**: can perform db queries and updates 
+
+Triggers cannot be modified
+
+## Examples
+
+set new values to uppercase
+```{sql eval = FALSE}
+create trigger vendors_before_update
+  before update on vendors
+  for each row
+begin
+  set new.vendor_state = upper(new.vendor.state);
+end;
+```
+
+Update a child table when parent is updated
+```{sql eval = FALSE}
+create trigger trigger_after_sailor_insert
+  after insert on sailors
+  for each row
+    begin
+      insert into YoungSailors (sid, name, age, rating)
+      select sid, name, age, rating
+        from New.Sailors N 
+       where New.age <= 18;
+end;
+```
+
+Adding rows into a table with a trigger
+```{sql eval = FALSE}
+create trigger invoices_after_delete
+  after delete on invoices
+  for each row
+    begin
+      insert into invoices_audit values
+      (old.vendor_id, old.invoice_number,
+      old.invoice_total, 'DELETED', NOW());
+end;
+```
+
+If both physician and nurse are true:
+
+* change delimiter so that outer query isn't terminated by inner query
+* `signal sqlstate` will kill the command 
+
+```{sql eval = FALSE}
+delimiter // 
+create trigger EmpTypeCheck
+before insert on Employee
+for each row
+  begin
+  if new.isPhysician and new.isNurse
+  then
+  signal sqlstate '45000' set message_text = "employee inserts can't be both physician and nurse";
+  end if ;
+end // 
+delimiter ;
+```
+
+## Challenges
+
+* One DB action can trigger multiple triggers
+  * originally unordered - now ordered by creation time. Can specify whether a trigger should precede or follow another via `follows` or `precedes`
+* Trigger action can fire other triggers
+  * can be difficult to determine exact pathway, cause unintended effects
+* Triggers create deductive databases (with rules)
+
+## In MySQL
+
+* triggers cannot be activated for foreign key actions
+* no triggers can monitor system catalog database
+* active triggers are not notified of metadata changes
+* no recursive triggers
+* cannot modify/alter table that is already being used

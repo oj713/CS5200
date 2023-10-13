@@ -1,0 +1,240 @@
+---
+title: "Transactions in SQLite"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[lesson link](http://artificium.us/lessons/70.sql/l-70-821-txns-sqlite/l-70-821.html)
+
+A **transaction** is a sequence of database modifications and queries occuring as a single sequence. 
+
+* the database meets all integrity constraints before and after transaction
+* transactions must be explictly started and committed -- if operation within transaction fails, it must be aborted/rolled back, reversing all changes 
+
+```{r}
+library(RSQLite)
+db <- dbConnect(SQLite(), "txns_demoDB.sqlitedb")
+```
+
+## SQLite and ACID
+
+SQLite is a transactional database because it ensures that all modifications/queries exhibit **ACID properties**: atomic, consistent, isolated, and durable. 
+
+* adherance to ACID implies that all SQLite modifications leave database in consistent state even if transaction is interrupted by program crash
+
+### Acid Properties
+
+**Atomic**: A sequence of modification operations cannot be broken down into smaller ones. When transaction committed, either all mods applied or none applied (no partial updates).
+
+**Consistent**: must ensure that database is changed from one valid state to another, *e.g.* when transferring funds the total value in both accounts is the same at the beginning and end of transaction.
+
+**Isolated**: The intermediate state of a transaction is invisible to other transactions -- concurrent transactions appear serialized. 
+
+**Durable**: When transaction successful, changes must be permanent regardless of condition, eg. crash. On the reverse, if crash occurs mid-transaction change should not appear. 
+
+## Transactions in SQLite
+
+SQLite defaults to *auto-commit mode* -- for each modding command, SQLite starts transaction, processes command, and commits.
+
+Start transactions explicitly with `BEGIN TRANSACTION`.
+
+* SQLite does not support nested transactions
+* transactions are active until explicitly committed or rolled back 
+  * any changes made before committing are only visible to application initializing transaction.
+  
+Commit transactions with `COMMIT TRANSACTION`.
+
+Rollback transactions with `ROLLBACK TRANSACTION`. 
+
+* rollbacks return database to state just prior to start of transaction
+
+## Nested Transactions
+
+Nested transactions are useful when a change within a transaction should be made permanent while others shouldn't, all while prohibiting viewing of partial updates. 
+
+* not supported in SQLite, but are supported in Oracle, Microsoft SQL Server
+
+## Read Transactions
+
+It's not common to have *SELECT* statements within transactions, but sometimes useful when guaranteeing that we read all tables from a defined state. Especially useful when generating reports.
+
+## Example: Banking transfers
+
+The classic transaction example is moving \$ from one account to another. 
+
+* no client should see one account debited before other credited
+* most applications log transactions into a General Journal
+
+```{sql connection = db}
+DROP TABLE IF EXISTS accounts;
+```
+```{sql connection = db}
+DROP TABLE IF EXISTS journal;
+```
+```{sql connection = db}
+CREATE TABLE IF NOT EXISTS accounts ( 
+    account_no INTEGER NOT NULL, 
+    balance DECIMAL NOT NULL DEFAULT 0,
+    PRIMARY KEY(account_no),
+  CHECK(balance >= 0)
+);
+```
+```{sql connection = db}
+CREATE TABLE IF NOT EXISTS journal (
+    change_no INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_no INTEGER NOT NULL, 
+    flag TEXT NOT NULL, 
+    amount DECIMAL NOT NULL, 
+    change_date DATE NOT NULL,
+    FOREIGN KEY (account_no) 
+     REFERENCES accounts(account_no)
+);
+```
+```{sql connection = db}
+INSERT INTO accounts 
+     (account_no, balance)
+     VALUES (117860, 1100),
+            (299871, 2200);
+```
+
+Let's initiate a transfer -- moving 100 from account 1 to account 2. Requires 4 UPDATES -- updating balance in two accounts and an insertion into the journal. 
+
+```{sql connection = db}
+BEGIN TRANSACTION;
+```
+```{sql connection = db}
+UPDATE accounts
+   SET balance = balance - 100
+ WHERE account_no = 117860;
+```
+```{sql connection = db}
+UPDATE accounts
+   SET balance = balance + 100
+ WHERE account_no = 299871;
+```
+```{sql connection = db}
+INSERT INTO journal
+       (account_no, flag, amount, change_date)
+VALUES (299871, 'C', 100, date('now'));
+```
+```{sql connection = db}
+INSERT INTO journal
+       (account_no, flag, amount, change_date)
+VALUES (117860, 'D', 100, date('now'));
+```
+```{sql connection = db}
+COMMIT;
+```
+
+Evaluating whether it worked:
+
+```{sql connection = db}
+SELECT account_no, balance FROM accounts;
+```
+```{sql connection = db}
+SELECT * FROM journal;
+```
+
+### Transactions in Applications
+
+In applications, we should use conditional statements t determine when/whether to commit or rollback. Within R this is best done inside a function. 
+
+```{r}
+doTransfer <- function (dbcon, acctNoSrc, acctNoDest, amount)
+{
+  txnFailed = FALSE
+  
+  if (acctNoSrc == acctNoDest)
+  {
+    # can't transfer to same account
+    return (FALSE)
+  }
+  
+  dbExecute(dbcon, "BEGIN TRANSACTION")
+
+  # debit source account
+  sql <- "UPDATE accounts
+             SET balance = balance - ?
+           WHERE account_no = ?"
+  ps <- dbSendStatement(dbcon, sql,
+                        params = list(amount, acctNoSrc))
+  if (dbGetRowsAffected(ps) < 1)
+    txnFailed = TRUE
+  dbClearResult(ps)
+
+  # credit destination account
+  sql <- "UPDATE accounts
+             SET balance = balance + ?
+           WHERE account_no = ?"
+  ps <- dbSendStatement(dbcon, sql,
+                        params = list(amount, acctNoDest))
+  if (dbGetRowsAffected(ps) < 1)
+    txnFailed = TRUE
+  dbClearResult(ps)
+  
+  # add accounting transaction to log
+  sql <- "INSERT INTO journal 
+           (account_no,flag,amount,change_date) 
+          VALUES (?, 'D', ?, date('now'))"
+  ps <- dbSendStatement(dbcon, sql,
+                        params = list(acctNoSrc, amount))
+  if (dbGetRowsAffected(ps) < 1)
+    txnFailed = TRUE
+  dbClearResult(ps)
+  
+  sql <- "INSERT INTO journal
+           (account_no,flag,amount,change_date) 
+          VALUES (?, 'C', ?, date('now'))"
+  ps <- dbSendStatement(dbcon, sql,
+                        params = list(acctNoDest, amount))
+  if (dbGetRowsAffected(ps) < 1)
+    txnFailed = TRUE
+  dbClearResult(ps)
+
+
+  # commit transaction if no failure, otherwise rollback
+  if (txnFailed == TRUE)
+    dbExecute(dbcon, "ROLLBACK TRANSACTION")
+  else
+    dbExecute(dbcon, "COMMIT TRANSACTION")
+
+  # return status; TRUE if successful; FALSE if failed
+  return (!txnFailed)
+}
+```
+
+Testing
+
+```{r}
+srcAccount <- '117860'
+destAccount <- '299871'
+amount <- 99
+
+status <- doTransfer(db, srcAccount, destAccount, amount)
+
+if (status == TRUE) {
+  cat('Transfer successful')
+} else {
+  cat('Transfer failed')
+}
+```
+```{r}
+srcAccount <- '117860'
+destAccount <- '999999'
+amount <- 200
+
+status <- doTransfer(db, srcAccount, destAccount, amount)
+
+if (status == TRUE) {
+  cat('Transfer successful')
+} else {
+  cat('Transfer failed')
+}
+```
+```{r}
+dbDisconnect(db)
+```
+

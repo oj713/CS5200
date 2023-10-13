@@ -1,0 +1,80 @@
+---
+title: "Estimating Availability and Reliability"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[lesson link](http://artificium.us/lessons/92.systems/l-92-505-reliability/l-92-505.html)
+
+It's necessary to assess reliability and availability when designing systems. Both are measures of the degree to which a system is usable and perform tasks.
+
+## Reliability vs. Availability
+
+**Availability**:
+
+* measure of when a system is available to users/in an operable state
+* usually expressed as a percentage, *e.g.* the 99.35% availability during business hours
+* captures both "Mean Time to Failure" (MTTF) and "Mean Time to Restore" (MTTR)
+
+**Reliability**:
+
+* how long a system operates as expected betwween failures
+* how well a system functions in terms of 'uptime'
+
+## Estimating Availability
+
+The empirical estimate of system availability is calculated as 
+
+$$ A = 1 - \frac{\sum^{n}_{i = 1}f(t)_i}{T} $$
+Where $T$ is the total time period over which availability is measured and $f(t)_i$ is the amount of time that the system wasn't available due to $i^{th}$ failure. 
+
+### System Availability
+
+A system is collection of interconnected components that must all be available for system to be available. Thereofre, system availability is the join probability that all *n* components are available at the same time
+
+$$A_{system} = \Pi ^n _{i = 1} A_i$$
+### Availability and MTTR/MBTF
+
+Availability can be defined in terms of reliability when reliability estimate exists but no downtime measures were recorded. 
+
+$$A = \frac{MTBF}{MTBF + MTTR}$$
+
+### Improving Availability
+
+Address availability of weakest system component
+
+* duplication and use of redundancy
+* faster recoverability to reduce MTTR
+* data backup to avoid info loss
+* hot swap capability to repair components, reducing MTTR and MTBF 
+* continuous power through uninterruptable power supplies, backup sources
+
+## Estimating Reliability
+
+Reliability can be captured by two measures - MTTF and MTBF
+
+* **MTBF**: measure of the average time that elapses between two consecutive system failures
+
+  $$MTBF = \frac{T_{total} - T_{down}}{n}$$
+  
+  Where $T_{total}$ is total time of observation and $T_{down}$ is total time during which system wasn't available. 
+  
+* **MTTR** represents the time duration to repair or resore a failed system component 
+
+### Reliability as Probability
+
+Reliability can also be expressed as the likelihood that a system is functioning properly during time period $t$ given some measure of *MBTF*
+
+$$R = e^{-t/MTBF}$$
+
+## Service Level Agreements (SLA)
+
+A SLA is an agreement between system provider and system purchaser containing service level objectives, which codify the quality of service requirements to avoid disputes.
+
+Species maintenance intervals, provider responsibilities, costs, and availability/reliability measures. 
+
+
+

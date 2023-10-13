@@ -1,0 +1,24 @@
+name: "Data Retrieval"
+output_dir: 'docs'
+navbar:
+  title: "Data Retrieval"
+  left:
+    - text: "Introduction"
+      href: index.html
+    - text: "SELECT"
+      href: select.html
+    - text: "WHERE"
+      href: where.html
+    - text: "Joins"
+      href: joins.html
+    - text: "Aggregation"
+      href: aggregation.html
+    - text: "Advanced"
+      href: advanced.html
+    - text: "Views and Subqueries"
+      href: views.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

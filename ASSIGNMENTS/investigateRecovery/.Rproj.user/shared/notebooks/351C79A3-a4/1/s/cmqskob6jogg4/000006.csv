@@ -1,0 +1,4 @@
+"0","SELECT Name, COUNT(DISTINCT GenreId) AS genre_count
+  FROM artists_tracks
+ GROUP BY ArtistId
+HAVING Count(DISTINCT GenreId) > 3"

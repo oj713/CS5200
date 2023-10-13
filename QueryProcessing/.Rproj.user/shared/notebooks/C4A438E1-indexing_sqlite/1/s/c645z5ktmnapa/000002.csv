@@ -1,0 +1,2 @@
+"0","library(RSQLite)"
+"0","db <- dbConnect(SQLite(), ""MediaDB.db"")"

@@ -1,0 +1,16 @@
+name: "XML and Xpath"
+output_dir: 'docs'
+navbar:
+  title: "XML and Xpath"
+  left:
+    - text: "XML and DTD basics"
+      href: index.html
+    - text: "Parsing XML with R"
+      href: parsingxmlwithR.html
+    - text: "XPath Examples"
+      href: quiz_stuff.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

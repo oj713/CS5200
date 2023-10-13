@@ -1,0 +1,5 @@
+"0","incidents_df <- birdstrikes[,c(""rid"", ""idate"", ""airline"", ""aircraft"", "
+"0","                               ""flightPhase"", ""altitude"", ""warning"","
+"0","                               ""aid"", ""cid"")] |>"
+"0","  dplyr::rename(origin = aid, "
+"0","                conditions = cid)"

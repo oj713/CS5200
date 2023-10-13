@@ -1,0 +1,3 @@
+"0","SELECT m.Name, COUNT(DISTINCT t.TrackId) as num_tracks 
+  FROM media_types m LEFT JOIN tracks t ON (t.MediaTypeId = m.MediaTypeId)
+ GROUP BY m.MediaTypeId"

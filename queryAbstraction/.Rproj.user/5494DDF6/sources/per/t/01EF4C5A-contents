@@ -1,0 +1,182 @@
+---
+title: "Relational Algebra"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[lesson link](http://artificium.us/lessons/60.dbdesign/l-60-502-rel-algebra/l-60-502.html#Practice_Problems)
+
+[Relational algebra calculator RelaX](https://dbis-uibk.github.io/relax/landing)
+
+Relational algebra is the foundation for SQL. Operands do not map perfectly between relational algebra and SQL, since relational databases are not relations. However, it's still an important tool for query abstraction and can be used to express queries without getting into syntactic nuance. 
+
+<br>
+
+# Queries and Query Languages 
+
+Query languages retrieve data from storage, and fall into two types: 
+* **Procedural**: accessing files in the system. R, Python, Java, etc. start at root folder and require search of all files to find a folder. Programmers define steps for the query and thus the procedure. Relational algebra is procedural. 
+* **Declarative**: programmers define constraints that result must meet, dbms determins how to access and search the data. 
+
+<br>
+
+# Relations and tuples
+
+**Relation**: set of *tuples* $(a_1, a_2, ..., a_n)$ where each element is within a data domain, eg. $a_j \in D_j$. The *degree of a relation* is the number of elements in each tuple. 
+
+* Relational schemas assign names to a relation and each element in the tuple: $R(A_1, A_2, ..., A_n)$. This maps to a table name and table attributes. An *instance* of the relation will assign specific names. 
+
+**Example**: $Employee(id, name, salary)$ is a relation, with domains $eid, ename \in TEXT$ and $esalary \in \mathbb{R}^+$. 
+
+An instance of $Employee$ could be \{(11107, "Peter", 15), (1111, "Nina", 50)\}. 
+
+The cardinality of this instance is $|Employee| = 2$. 
+
+<br>
+
+# Relational Algebra
+
+The five primitive operators of relational algebra are *selection, projection, cartesian product (cross join), set union, set difference*. Set union, set difference, and cartesian product are borrowed from set theory and add additional constraints. 
+
+Operators of relational algebra usually defined with Greek and German letters to distinguish from attributes. 
+
+Sequences of relational algebra operations form an expression, which always results in a relation. 
+
+## Union Compatability
+
+Set union, set difference, and their derivatives require union compatibility, i.e. the two relations must have the same attribute set. 
+
+$R_1$ and $R_2$ are union compatible iff. $degree(R_1) = degree(R_2) \land D(R^{A^i}_1 = D(R^{A^i}_2)$, where $A_i$ is the ith attribute and $D(R^{A^i}_k$ is the domain of the ith attribute of relation $R_k$. 
+
+## Boolean expressions
+
+Several algebra operations require *conditions*: a boolean logical expression containing 1+ clauses evaluation to true or false. 
+
+Clauses are connected using *and* $\land$, *or* $\lor$, and *not* $\lnot$. 
+
+* **conjunction**: all clauses connected via $\land$
+* **disjunction**: all clauses connected via $\lor$. 
+
+## Selection 
+
+Selection is denoted with \sigma and used to choose a subset of tuples satisfying a selection condition, which is expressed as a Boolean logical operation and filters tuples. 
+
+Selection operation on R is denoted by $\sigma_{<condition>}(R)$. Example: $\sigma_{(salary \geq 25000) \lor (salary \leq 100000)}(Employee)$
+
+Selections are typically specified in the `WHERE` clause in SQL. 
+
+### Properties of Selection
+
+* Selection is *unary* -- it only applies to one relation
+* The condition is applied to each tuple and thus can only involve 1 tuple
+* degree of resultant relation = degree of incoming relation
+* cardinality is always less than or equal to original
+  * **selectivity**: the percentage of tuples selected
+  
+* Selection is commutative and can always be transformed into a conjunction
+  * $\sigma_{<C_1>}(\sigma_{<C_2>}(R)) = \sigma_{<C_2>}(\sigma_{<C_1>}(R)) = \sigma_{<C_1> \land <C_2>}(R))$
+
+## Projection
+
+Projection is denoted as \pi and selects specific attributes from a relation. Equivalent to `dplyr::select()`. 
+
+Denoted as $\pi_{<attributelist>}(R)$, eg. $\pi_{<name, salary>}(Employee)$
+
+Properties:
+
+* unary
+* cardinality and degree of result <= original 
+  * If the projection list is a *superkey* of R, then the cardinality will be equal. 
+* projection is not commutative
+
+### Handling duplicates ###
+
+If attributes include non-key attributes, it's likely that duplicate tuples might be part of resultant relation. However, since rel. algebra treats relations as sets (which cannot contain duplicates), duplicates from a projection are automatically eliminated. 
+
+SQL does not automatically remove duplicates. Therefore we must use the `DISTINCT` keyword to ensure unique results 
+
+$$\pi_{<name, salary>}(\sigma_{salary \geq 2500000}(Employee))$$
+
+```{sql eval = FALSE}
+SELECT DISTINCT name, salary
+  FROM Employee
+ WHERE salary >= 250000;
+```
+
+### Generalized Projection ###
+
+Generalized form of projection allows functions on attributes to be included and is expressed as $\pi_{F_1, F_2, ..., F_j}(R)$, where each $F_k$ is a function over the attributes in $R$ and may include operations and scalar values. 
+
+## Rename
+
+Relational algebra expressions can be cascaded/nested, it can become extremely long and unwieldy. Instead, decompose expressions into sequence of individual expressions, while renaming intermediary relations/attributes w/ *rename*. 
+
+Rename is denoted with \rho and takes the form $\rho_{S(B_1, B_2, ..., B_n)}(R)$, which renames relation R to S and renames each attribute $A_i$ to $B_i$. 
+
+$\rho_E(\sigma_{salary≥250000}(Employee)) \rho_S(π_{name,salary}(E)) \rho_{Salaries(FullName,Salary)}(S)$
+
+```{sql eval = FALSE}
+SELECT DISTINCT name AS FullName, salary AS Salary
+  FROM Employee E
+ WHERE E.salary >= 250000;
+```
+
+## Cartesian Product
+
+Binary operation denoted by \times. Relations do not have to be union compatible. Produces a new relation where each tuple from one relation is combined with every tuple of the other. 
+
+Result of $R \times S$ has degree $n + m$ and cardinality of $|R| \times |S|$. 
+
+Cartesian product alone is not useful, but rather the foundation for joins. 
+
+```{sql eval = FALSE}
+SELECT * 
+  FROM Employee E, City C
+```
+
+## Join
+
+Operation where selection occurs after Cartesian product operation. There are five types: cross join, equi-join (inner join), outer join, left outer join, and right outer join. There's also a *theta join*, which is a more generalized equi-join. 
+
+* **Equi-join**: Most common, symbolized by \Join. Combines related tuples. 
+
+  General form is $R_1 \Join_{<join condition>}R_2$, where <join condition> is the matching attributes in the relations. 
+  
+* **Theta join**: Similar to equi-join except that the join condition can be anything, not just equality. Denoted by \theta.
+
+* **Left Outer Join**: Expressed as $R _*\Join S$ and contains all tuples that meet join condition as well as tuples in $R$ for which no matches are found -- missing attributes padded with NULL. *Outer joins* and *Right Outer Joins* can be expressed as a function of the left outer join. 
+
+<br>
+
+# Set Operations 
+
+Important part of relational algebra are standard mathematical operations. All set operations are binary and all operands must be *union compatible*. 
+
+* **Set Union**
+  
+  A union $R \cup S$ is the combination of tuples of two relations with duplicates removed. Note that domains of attributes must be the same but may often not be truly compatible. 
+  
+* **Set Difference**
+  
+  The set difference $R - S$ includes all tuples that are in $R$ but not $S$. 
+
+* **Set Intersection**
+
+  The set intersection $R \cap S$ includes all tuples both in $R$ and $S$. 
+  
+# Complete set
+
+The set of foundational relational algebra operations are $\{\sigma, \pi, \cup, \rho, -, \times\}$ and form a complete set, meaning that all other relational algebra operations can be expressed as a combo of them. 
+
+Eg. equi-join: $R \Join_{<condition>} = \sigma_{<condition>}(R \times S)$
+
+# Aggregation functions and grouping 
+
+Basic relational algebra doesn't support grouping or aggregate methods. However these are important for queries. 
+
+Extended relational algebra adds an *aggregate function* operation, denoted as $_{<grouping>}\mathfrak{F}_{<functions>}(R)$. *functions* can be count, sum, avg, min, and max. Either of the clauses are optional. 
+
+

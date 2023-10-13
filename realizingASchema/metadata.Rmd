@@ -1,0 +1,74 @@
+---
+title: "Database Meta Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "myDB.db")
+```
+
+Database meto info is stored in tables and can be queried -- application code therefore independent from hard coded schema definitions. 
+
+All commands to query database meta data will work for both SQLite database and MySQL/etc. 
+
+```{sql connection = dbcon}
+create table plants (
+  pname text not null,
+  pleaves integer not null
+);
+```
+```{sql connection = dbcon}
+insert into plants values
+  ("pilea", 30), 
+  ("pothos", 30), 
+  ("ming aralia", 100);
+```
+
+## Query Table Structure ##
+
+To find the structure of a table:
+
+* execute `.schema` or `.schema table_name` for specific table
+* SQLite command from SQLite console
+* `pragma` command from program
+  ```{sql connection = dbcon}
+  pragma table_info(plants);
+  ```
+  **Return values:** column names, attributes, null status, default value, whether pk 
+* query tables containing table information, *ie* **metadata**. 
+  ```{sql connection = dbcon}
+  /* in sqlite, sqlite_schema contains table info */
+  select * from sqlite_schema where name = 'plants';
+  ```
+* retrieve SQL command used to create table
+  * use R block to capture SQL used 
+  ```{r}
+  rs <- dbGetQuery(dbcon, paste0(
+    "select sql", 
+    "  from sqlite_schema", 
+    "  where name = 'plants'"))
+  
+  cat(rs[[1]])
+  ```
+
+## List Schema ##
+
+To list names of all tables in database (omitting tables holding schema), use
+
+```{sql connection = dbcon}
+select name
+  from sqlite_schema
+ where `type` = 'table'
+   and name not like 'sqlite_%';
+```
+
+## R DBI convenience methods ##
+
+R has a collection of methods for querying db metainfo, such as `dbListTables(connection)` and `dbListFields(connection, "table_name")`. More on this [here](http://artificium.us/lessons/06.r/l-6-301-sqlite-from-r/l-6-301.html#Querying_Data_Frames_with_sqldf). 
+
+```{r include = FALSE}
+file.remove("myDB.db")
+```

@@ -1,0 +1,8 @@
+"0","join_query <- "
+"0"," ""EXPLAIN"
+"0","  SELECT address, city, country"
+"0","  FROM (address a INNER JOIN city ci ON (a.city_id = ci.city_id))"
+"0","       INNER JOIN country co ON (ci.country_id = co.country_id)"""
+"0",""
+"0","# Evaluating"
+"0","dbGetQuery(mysql_db, join_query)"

@@ -1,0 +1,5 @@
+"0","SELECT State, Count(*) as distinct_customers
+  FROM purchasing_customers
+ WHERE Country LIKE 'USA'
+ GROUP BY State
+ ORDER BY State"

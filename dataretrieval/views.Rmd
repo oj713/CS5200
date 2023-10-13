@@ -1,0 +1,94 @@
+---
+title: "Views and Subqueries"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RSQLite)
+
+db <- dbConnect(SQLite(), "AssetDB.db")
+```
+
+## Views 
+
+Well designed, schema independent databases only provide queries through an interface through **views**: no direct interaction. 
+
+* Views provide abstraction of schema, ensuring that schema changes (table name change, column change) don't affect queries. 
+* enforce security, as data only accessible through views. 
+  * can present data in redacted form or depending on access privileges 
+* virtual table defined by SQL select statement - behaves in queries exactly like a table 
+  * does not consume storage 
+  * generally only materialized when involved in query
+  
+### Creating Views
+
+Use `CREATE VIEW` to create a view. 
+
+* write query selecting desired data 
+* assign it to create view 
+
+```{sql connection = db}
+/* creating a view with redacted email addresses */
+create view if not exists authorNM
+  (fullname, email)
+  as
+  select name, 
+         substr(email, 1, 2) || '****' || substr(email, -5) -- || is string concatenation
+    from Author;
+```
+
+### Using Views
+
+Views can be used anywhere a table can be used with `SELECT`
+
+```{sql connection = db}
+select * from authorNM;
+```
+
+Common use cases: 
+
+* defining a view only containing select rows and columns or partially authorized users 
+* aggregate data from complex query to simplify data access 
+* use views as alternatives to common subqueries to make queries simpler and allow some reusability
+
+### Updating views
+
+Views can generally only be used for data retrieval, aka SELECT but not INSERT, UPDATE, or DELETE.
+
+A view is updatable if: 
+
+* no aggregations
+* no group by
+* no subqueries in definition
+* view is not result of UNION, ALL, DISTINCT
+* FROM clause only has updatable tables and no outer joins 
+
+<br>
+
+## Subqueries
+
+Subqueries are queries embedded within another SQL statement. 
+* returns a result set that may be a value, a vector, or a table. 
+* memory and resources of a subquery are released after evaluation
+
+```{sql eval = FALSE}
+/* selecting payments with an average amount */
+select count(payment_id) as numGrtrThanAvg
+  from payment
+ where amount < (select age(amount) from payment)
+```
+
+```{sql eval = FALSE}
+/* selecting customers who've never gotten a free rental */
+select fullname as Name 
+  from customer
+ where customer_id not in 
+    (select customer_id from payment where amount = 0)
+ order by fullname;
+```
+
+```{r include = FALSE}
+dbDisconnect(db)
+```

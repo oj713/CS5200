@@ -1,0 +1,197 @@
+### Query Document Database
+###
+### Author: Johnson, Omi
+### Course: CS5200
+### Term: Fall 2022
+
+# assumes that you have set up the database structure by running CreateFStruct.R
+
+# Query Parameters (normally done via a user interface)
+
+quarter <- "Q2"
+year <- "2021"
+customer <- "Medix"
+
+###### write code below ######
+
+#' Returns the relative path to a desired report folder
+#' Note: does not create any directories or check that path exists
+#' 
+#' @param customer str, the customer for the report folder
+#' @param year str, the year for the report folder
+#' @param quarter str, the quarter for the report folder
+#' @return relative path to a desired report folder
+genReportPath <- function(customer, year, quarter) {
+  file.path("docDB", "reports", year, quarter, customer)
+}
+
+#' Generates a report file name 
+#' 
+#' @param customer str, the customer for the report
+#' @param year str, the year for the report
+#' @param quarter str, the quarter for the report
+#' @return report file name using the pattern Company.Year.Quarter.pdf
+genReportReportFileName <- function(customer, year, quarter) {
+  paste(customer, year, quarter, "pdf", sep = ".")
+}
+
+#' Creates a lock file for specified company/quarter/year folder
+#' Assumptions:
+#'   - target directory for lock file already exists
+#' 
+#' @param customer str, the customer for the report folder
+#' @param year str, the year for the report folder
+#' @param quarter str, the quarter for the report folder
+#' @return -1 if lock file already exists, 0 if successfully created
+setLock <- function(customer, year, quarter) {
+  path <- genReportPath(customer, year, quarter)
+  file <- file.path(path, ".lock")
+  
+  if (!file.exists(file)) {
+    file.create(file)
+    0
+  } else {
+    -1
+  }
+}
+
+#' Copies desired report file to appropriate folder location
+#' Assumptions: 
+#'  - desired report file is in working director, if it exists
+#'  - desired report file is named Customer.Year.Quarter.pdf
+#'  - target folder exists
+#' 
+#' @param customer str, the customer for the report 
+#' @param year str, the year for the report
+#' @param quarter str, the quarter for the report
+#' @return 0 if file successfully copied, -1 if not 
+storeReport <- function(customer, year, quarter) {
+  filename <- genReportReportFileName(customer, year, quarter)
+  newfileloc <- genReportPath(customer, year, quarter) |>
+    paste0("/")
+  
+  if(file.exists(filename)) {
+    file.copy(filename, newfileloc)
+    0
+  } else {
+    -1
+  }
+}
+
+#' Removes a lock file for specified company/quarter/year folder
+#' 
+#' @param customer str, the customer for the report folder
+#' @param year str, the year for the report folder
+#' @param quarter str, the quarter for the report folder
+#' @return -1 if lock file to remove didn't exist, 0 if successfully removed
+relLock <- function(customer, year, quarter) {
+  file <- genReportPath(customer, year, quarter) |>
+    file.path(".lock")
+  
+  if (file.exists(file)) {
+    file.remove(file)
+    0
+  } else {
+    -1
+  }
+}
+
+
+###### test that all functions work ######
+
+#' Determines whether a method returns an expected value
+#' Helper method to use while testing
+#' 
+#' @param method fn, the method to test
+#' @param value the expected value that the method should return
+#' @param customer customer value to pass to method 
+#' @param year customer value to pass to method 
+#' @param quarter customer value to pass to method 
+#' @return whether the method, when passed given params, returns correct value
+testResultEquals <- function(method, value, 
+                             customer = "Medix", 
+                             year = "2021", 
+                             quarter = "Q2") {
+  method(customer, year, quarter) == value
+}
+
+#' Checks if a desired file exists
+#' Helper method to use while testing
+#' 
+#' @param method the filename to check existence
+#' @param customer customer for folder
+#' @param year customerfor folder
+#' @param quarter customer for folder
+#' @return whether the file exists within the folder 
+testFileExists <- function(filename,
+                           customer = "Medix", 
+                           year = "2021", 
+                           quarter = "Q2") {
+  genReportPath(customer, year, quarter) |>
+    file.path(filename) |>
+    file.exists()
+}
+
+
+# testing genReportPath()
+testGenReportPath <- function() {
+  all(
+    testResultEquals(genReportPath, "docDB/reports/2021/Q2/Medix"),
+    testResultEquals(genReportPath, "docDB/reports/2200/Q3/BogusCompany",
+                     "BogusCompany", "2200", "Q3")
+  )
+}
+
+# testing genReportReportFileName()
+testGenReportReportFileName <- function() {
+  all(
+    testResultEquals(genReportReportFileName, "Medix.2021.Q2.pdf"),
+    testResultEquals(genReportReportFileName, "BogusCompany.2200.Q4.pdf",
+                     "BogusCompany", "2200", "Q4")
+  )
+}
+
+# testing setLock()
+testSetLock <- function() {
+  source("CreateFStruct.R")
+  all(
+    !testFileExists(".lock"),
+    testResultEquals(setLock, 0),
+    testFileExists(".lock"),
+    testResultEquals(setLock, -1)
+  )
+}
+
+# testing relLock()
+testRelLock <- function() {
+  source("CreateFStruct.R")
+  setLock("Medix", "2021", "Q2")
+  all(
+    testFileExists(".lock"),
+    testResultEquals(relLock, 0),
+    !testFileExists(".lock"),
+    testResultEquals(relLock, -1),
+    testResultEquals(relLock, -1, customer = "BogusCompany")
+  )
+}
+
+# testing storeReport()
+testStoreReport <- function() {
+  source("CreateFStruct.R")
+  all(
+    !testFileExists("Medix.2021.Q2.pdf"), 
+    testResultEquals(storeReport, 0),
+    testFileExists("Medix.2021.Q2.pdf"),
+    testResultEquals(storeReport, 0), # checking that overwrite works
+    testResultEquals(storeReport, -1, customer = "BogusCompany")
+  )
+}
+
+testGenReportPath() 
+testGenReportReportFileName() 
+testSetLock() 
+testRelLock() 
+testStoreReport()
+
+
+

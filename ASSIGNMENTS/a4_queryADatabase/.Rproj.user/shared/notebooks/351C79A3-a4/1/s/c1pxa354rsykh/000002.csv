@@ -1,0 +1,7 @@
+"0","SELECT m.Name, COUNT(*) as numTracks 
+  FROM tracks t INNER JOIN media_types m ON (t.MediaTypeId = m.MediaTypeId)
+ GROUP BY m.MediaTypeId
+ UNION -- adding media types with zero tracks, if exist
+SELECT m.Name, 0 as numTracks
+  FROM media_types m
+ WHERE m.MediaTypeId NOT IN (SELECT MediaTypeId from tracks)"

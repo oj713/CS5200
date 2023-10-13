@@ -1,0 +1,12 @@
+"0","SELECT jf.jid AS `Journal ID`,
+       jf.Title AS `Journal Title`,
+       pd.PubYear AS `Year`,
+       SUM(pd.pubQuarter = 1) AS Q1,
+       SUM(pd.pubQuarter = 2) AS Q2,
+       SUM(pd.pubQuarter = 3) AS Q3,
+       SUM(pd.pubQuarter = 4) AS Q4,
+       COUNT(*) AS `Total Articles`
+  FROM PublicationDimension pd
+ INNER JOIN JournalFact jf ON (jf.jid = pd.jid)
+ GROUP BY jf.jid, pd.PubYear
+ ORDER BY jf.jid, pd.PubYear"

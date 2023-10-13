@@ -1,0 +1,5 @@
+"0","po <- xmlParse(""files/po.xml"")"
+"0",""
+"0","findpo <- function(xpath_expr) {"
+"0","  xpathSApply(po, xpath_expr) |> head(3)"
+"0","}"

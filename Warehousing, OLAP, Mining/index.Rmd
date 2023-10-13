@@ -1,0 +1,97 @@
+---
+title: "Data Warehousing"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Textbook](files/datawarehousing.pdf)
+
+Organizations have large databases from collecting data on day-to-day activities, ranging from GB to TBs of data. 
+
+* **OLTP**: online transactional processing applications that record and update data in such databases
+
+# Data warehouses
+
+*Subject-oriented, integrated, time-variant, non-volatile collection of data in support of management's decisions* - Bill Inmon
+
+**Data Warehouses** are databases consolidating data from multiple sources, augmented with summary info and historical data over time. 
+
+* sources for warehouse can range from other databases to XML files to unstructured data, etc. and consolidate multiple sources (eg. marketing, outreach, sales)
+  * contains data from most or all of organizations operational applications
+  * data integrated and harmonized via ETL to ensure consistent views
+* primarily queried and non-volatile - do not support transaction processing, recovery, or concurrency control
+  * no data is overwritten or deleted - only loaded, refreshed, and accessed. 
+* historical component allows for trend analysis (compare with transactional data)
+  * can hold years or decades worth of data 
+* **OLAP**: analysis of complex data from data warehouse
+* **data mining**: automated derivation of patterns, clusters, and association
+
+**Data Mart**: Subject-specific subsets of data geared towards the needs of a particular user. 
+
+* improves speed and efficiency of analysis 
+* can contain derived values
+
+## Subject orientation
+
+A data warehouse is organized around a major subject, eg. accounts, products, or orders.
+
+Unlike an operational database which supports an application, the data is organized according to its subject. 
+
+They change the perspective of the data to better enable analysis! 
+
+# Data Warehouse architecture
+
+```{r echo = FALSE, out.width = '50%', fig.align = 'center'}
+knitr::include_graphics("files/datawarehousearchitecture.png")
+```
+
+**ETL** - Various source databases extracted and transformed into required data formats for warehouse and then uploaded. 
+
+Data warehouse can be queried directly, but usually subset into **data marts** 
+
+Usually very large and often spread across multiple databases, where summary data is stored alongside individual values.  
+
+# OLTP vs DSS vs OLAP
+
+**DSS**: Decision support systems, extracts high-level information in databases and uses that information to support decisions. Data warehousing, OLAP, data mining, and predictive modeling are all tools and techniques to build DSS. 
+
+| **OLTP**        | **OLAP**      |
+| :-------------: |:-------------:|
+| Used online by users for specific, defined reasons | Used by managers/execs for unknown tasks | 
+| Contains current data | Contains data snapshots |
+| Contains unfiltered data | Contains filtered, converted data |
+| Single data source | Multiple data sources |
+| Continuous updates | periodic, versioned updates |
+
+Data warehouses are only updated periodically - eg. weekly or monthly. 
+
+* Redundancy is deliberate to improve access - summarized data, denormalized relational schemas, joins/aggregations/grouping avoided during retrieval
+
+# Benefits for data warehouses
+
+* more complete pictures for business decisions
+* gain an advantage during competitive decision making
+* find information otherwise non-accessible 
+* reduces costs and increase profits by automating mining
+
+# Integration Issues
+
+Integrating data across multiple sources creates a host of issues: 
+
+* category encodings and formatting
+* field naming
+* primary key selection
+* duplicate data
+* default values
+* filtering and summarization
+  * this one is tough because we don't know what data we need - often better off to store everything
+  
+**Backflushing**: after cleaning data via ETL data quality issues are often resolved and copied back to operational data sources. 
+
+
+

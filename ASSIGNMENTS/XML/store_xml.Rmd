@@ -1,0 +1,237 @@
+---
+title: 'DO: Store XML in a Database'
+author: "Omi Johnson"
+date: "2022-11-23"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+**(20 pts) Create a normalized (BCNF) relational schema and visualize the schema in an ERD (in Crow's Feet/IE Notation) for the data in the XML file using a tool of your choice such as LucidChart. Include the ERD in your R Notebook.**
+
+```{r out.width = '70%', fig.align = 'center'}
+knitr::include_graphics('https://i.imgur.com/nQztzQz.png')
+```
+
+## Question 2
+
+**(10 pts) Create a SQLite database that implements the schema, i.e., define the tables with CREATE TABLE. Use SQL chunks in your R Notebook.**
+
+```{r}
+library(RSQLite)
+
+db <- dbConnect(SQLite(), "booksDB.db")
+```
+
+```{sql connection = db}
+DROP TABLE IF EXISTS Book;
+```
+```{sql connection = db}
+DROP TABLE IF EXISTS Author;
+```
+```{sql connection = db}
+DROP TABLE IF EXISTS Catalog;
+```
+```{sql connection = db}
+DROP TABLE IF EXISTS Genre;
+```
+
+```{sql connection = db}
+CREATE TABLE Catalog(
+  cid Integer NOT NULL PRIMARY KEY
+)
+```
+
+```{sql connection = db}
+CREATE TABLE Author(
+  aid Integer NOT NULL PRIMARY KEY,
+  aname Text NOT NULL
+)
+```
+
+```{sql connection = db}
+CREATE TABLE Genre(
+  gid Integer NOT NULL PRIMARY KEY,
+  gname Text NOT NULL
+)
+```
+
+```{sql connection = db}
+CREATE TABLE Book(
+  id Text NOT NULL PRIMARY KEY,
+  title Text NOT NULL, 
+  edition Numeric, 
+  price Numeric NOT NULL,
+  publish_date Date NOT NULL,
+  description Text NOT NULL, 
+  genre Numeric NOT NULL REFERENCES Genre(gid), 
+  author Numeric NOT NULL REFERENCES Author(aid), 
+  catalog Numeric NOT NULL REFERENCES Catalog(cid)
+)
+```
+
+## Question 3
+
+**(30 pts) Load the XML data from the file into R data frames; you will need to use either node-by-node traversal of the XML tree or a combination of node-by-node traversal with XPath; you likely will not be able to accomplish it with only XPath. Use surrogate keys and/or the ID attributes in the XML to establish relationships.**
+
+```{r}
+library(XML)
+library(stringr)
+
+xml <- xmlParse("Books-v3.xml")
+
+xpath_help <- function(...) {
+  xpathSApply(xml, paste0(...))
+}
+```
+
+```{r}
+# create genre table
+genres <- xpath_help("//book/genre/text()") |> 
+  sapply(function(g) as(g, "character")) |>
+  unique()
+
+genres_df <- data.frame(gid = 1:length(genres), 
+                        gname = genres)
+
+head(genres_df)
+```
+
+```{r}
+# create author table
+authors <- xpath_help("//book/author/text()") |> 
+  sapply(function(a) as(a, "character")) |>
+  unique()
+
+authors_df <- data.frame(aid = 1:length(authors), 
+                         aname = authors)
+
+head(authors_df)
+```
+
+```{r}
+# create catalog tables
+catalogs <- xpath_help("//catalog")
+
+catalogs_df <- data.frame(cid = 1:length(catalogs))
+
+head(catalogs_df)
+```
+
+```{r}
+# helper function that creates a list for a book entry 
+processBook <- function(book, cid) {
+  # helper method to extract text for an element
+  book_elem <- function(elem, type = "character") {
+    xpathSApply(book, paste0(elem, "/text()"))[[1]] |> as(type)
+  }
+  
+  # mandatory elements
+  id <- xpathSApply(book, "@id")
+  title <- book_elem("title")
+  price <- book_elem("price", type = "numeric")
+  publish_date <- book_elem("publish_date")
+  description <- book_elem("description")
+  
+  # optional elements
+  edition <- book_elem("edition", type = "numeric")
+  if (length(edition) == 0) {edition <- NA}
+  
+  # references
+  genre <- which(genres == book_elem("genre"))
+  author <- which(authors == book_elem("author"))
+  catalog <- cid
+  
+  list("id" = id, 'title' = title, 'edition' = edition, 'price' = price, 
+       'publish_date' = publish_date, 'description' = description, 
+       'genre' = genre, 'author' = author, 'catalog' = catalog)
+}
+
+# defining books base
+books_df <- data.frame (id = character(0),
+                       title = character(0),
+                       edition = numeric(0),
+                       price = numeric(0),
+                       publish_date = character(0),
+                       description = character(0),
+                       genre = numeric(0),
+                       author = numeric(0), 
+                       catalog = numeric(0), 
+                       stringsAsFactors = F)
+
+# iterating through catalogs and by extension, books to create table
+for (cid in catalogs_df$cid) {
+  catalog <- catalogs[[cid]]
+  
+  books <- xpathSApply(catalog, "book")
+  
+  books_df <- do.call(rbind.data.frame, 
+                      lapply(books, processBook, cid)) |>
+    rbind(books_df)
+}
+
+head(books_df)
+```
+
+## Question 4
+
+**(20 pts) Transform data types as necessary and then save the data frames to the appropriate tables in the database using a strategy of your choice (e.g., dbWriteTable()).**
+
+```{r}
+dbWriteTable(db, "Author", authors_df, overwrite = TRUE)
+dbWriteTable(db, "Genre", genres_df, overwrite = TRUE)
+dbWriteTable(db, "Catalog", catalogs_df, overwrite = TRUE)
+dbWriteTable(db, "Book", books_df, overwrite = TRUE)
+```
+
+## Question 5
+
+**(20 pts) Once the data from the XML is in the database, build SQL chunks for the following queries against the SQLite database:**
+
+What is the number of genres have at least three books?
+
+```{sql connection = db}
+SELECT COUNT(*)
+  FROM (SELECT genre 
+          FROM Book
+         GROUP BY genre
+        HAVING COUNT(*) >= 3)
+```
+
+
+What is the oldest year in which a publication was published?
+
+```{sql connection = db}
+SELECT MIN(strftime('%Y', publish_date)) as "Year"
+  FROM Book
+```
+
+Find the number of books and average price for each genre.
+
+```{sql connection = db}
+SELECT genre, COUNT(*) AS numBooks, AVG(price) AS avgPrice
+  FROM Book
+ GROUP BY genre
+```
+
+List the title and author of all books that are less than 0.8\*AVG or more than 1.2\*AVG, where AVG is the average price of all books. As a predicate logic expression: \{ b : books(b) & (b.price < 0.8\*AVG(books.price) | b.price > 1.2*AVG(books.price)) \}
+
+```{sql connection = db}
+SELECT b.price AS Price, a.aname AS Author
+  FROM Book b INNER JOIN Author a ON (b.author = a.aid)
+ WHERE b.price/(SELECT AVG(price) FROM Book) NOT BETWEEN .8 AND 1.2
+```
+
+
+
+
+
+
+
+

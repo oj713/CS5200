@@ -1,0 +1,94 @@
+---
+title: "Primary keys with auto_increment and rowid"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "myDB.db")
+```
+
+```{sql connection = dbcon}
+create table lessons (
+  lname text not null,
+  llength integer not null default 0);
+```
+```{sql connection=dbcon}
+insert into lessons values
+  ('Intro C++', 90), 
+  ('Intro Java', 90),
+  ('SQL Joins', 60);
+```
+
+## Row ID's as implicit primary keys ##
+
+SQLite adds an automatic, hidden `rowid` column to all created tables. 
+
+* eliminates requirement for explicit primary key column
+* also accessible as `_rowid` and `oid`
+* generated as integers starting at 1. will reuse deleted values. 
+
+```{sql connection=dbcon}
+select rowid, lname, llength from lessons;
+```
+
+use `without rowid` to create a table without a row id. In this case a primary key column must be specified explicitly
+
+```{sql eval = FALSE}
+create table lessons (
+  lid integer primary key,
+  lname text not null, 
+  llength integer not null default 0,
+) without rowid;
+```
+
+## Automatic PK's with `autoincrement`##
+
+Use the `autoincrement` attribute to make SQLite generate a unique, increasing value for an element.
+
+* SQLite only guarantees increasing value, not sequential 
+
+```{sql colors, connection = dbcon}
+create table colors (
+  cid integer primary key autoincrement,
+  cname text not null
+);
+```
+
+Auto incremented variables do not require explicit declaration in `insert` commands. 
+
+* Note that if omitting columns, must specify columns within declaration
+* No values reused -- if rows are deleted, more likely to exceed max value
+
+```{sql insert1, connection = dbcon}
+insert into colors (cname) values
+  ('Cyan'), ('Magenta');
+```
+ 
+Variables can still be explicitly declared, but affects future increments -- will increment from largest value
+
+```{sql insert2, connection = dbcon}
+insert into colors values 
+  (433, 'Purple');
+```
+```{sql insert3, connection = dbcon}
+insert into colors (cname) values
+  ('Blue')
+```
+```{sql selectc, connection = dbcon}
+select * from colors;
+```
+
+```{r include = FALSE}
+file.remove("myDB.db")
+```
+
+## Takeaways ##
+
+* application generated PK's are preferable
+* rowid is potentially slow in generating keys -- tables should generally be created without
+* PK's from autoincrement, rowid is convenient, but can mean slower performance and table relationship issues
+
+

@@ -1,0 +1,68 @@
+---
+title: "Triggers in SQLite"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Triggers are database program object fire automatically when table data is changed. 
+
+* associated with a specific action on a specific table
+* can be defined to "fire" before or after said action
+* not associated with selection 
+* each database has own syntax and restrictions for trigger definition and capability
+
+Common uses of triggers:
+
+* checking integrity, user-defined constraints
+* auditing updates to data (eg. logging changes)
+* central enforcement of complex business rules
+* preventing invalid actions
+* recalculating derived attributes
+
+## Creating Triggers
+
+In SQLite, use `CREATE TRIGGER`. 
+
+* `instead of` can only apply to views, not table
+* SQLite is limited:
+  * no loops, variables, conditional logic
+  * only supports `for each row` triggers; no `for each statement` triggers (aka trigger fired for each updated row, not once per statement)
+
+```{sql eval = FALSE}
+CREATE TRIGGER [IF NOT EXISTS] trigger_name
+  [BEFORE|AFTER|INSTEAD OF] [INSERT|UPDATE|DELETE] ON table
+  [WHEN condition]
+  BEGIN
+    statements;
+  END;
+```
+
+<br>
+
+## Deleting Triggers
+
+Use `DROP TRIGGER` to delete triggers. If a table is deleted, all associated triggers are deleted.
+
+<br>
+
+## Accessing old and new data 
+
+Access to old and new versions of updated data is done through `OLD.column_name` and `NEW.column_name`
+
+* varies depending on type of event: `insert` has NEW only, `delete` has OLD only, `update` has both.
+
+```{sql eval = FALSE}
+CREATE TRIGGER validate
+  BEFORE INSERT ON people
+  BEGIN
+    SELECT
+      CASE
+        WHEN NEW.email NOT LIKE '%_@__%.__%'
+        THEN RAISE (ABORT, 'Invalid email')
+      END;
+    END;
+```
+

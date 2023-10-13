@@ -1,0 +1,6 @@
+"0","# create catalog tables"
+"0","catalogs <- xpath_help(""//catalog"")"
+"0",""
+"0","catalogs_df <- data.frame(cid = 1:length(catalogs))"
+"0",""
+"0","head(catalogs_df)"

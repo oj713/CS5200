@@ -1,0 +1,20 @@
+name: "Query Processing, Indexing and Storage"
+output_dir: 'docs'
+navbar:
+  title: "Indices and Storage"
+  left:
+    - text: "Indexing Methods"
+      href: index.html
+    - text: "Indexing in SQLite"
+      href: indexing_sqlite.html
+    - text: "Query Planning/Processing"
+      href: query_pp.html
+    - text: "Data Storage and RAID"
+      href: datastorage_disks_raid.html
+    - text: "Reliability and Availability"
+      href: reliability_availability.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

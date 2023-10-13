@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Relational Algebra</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Query Abstraction</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Relational Algebra</a>
+</li>
+<li>
+  <a href="relcalc.html">Tuple Relational Calculus</a>
+</li>
+<li>
+  <a href="assignment.html">Assignment</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Relational Algebra</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#queries-and-query-languages">Queries and Query Languages</a></li>
+<li><a href="#relations-and-tuples">Relations and tuples</a></li>
+<li><a href="#relational-algebra">Relational Algebra</a>
+<ul>
+<li><a href="#union-compatability">Union Compatability</a></li>
+<li><a href="#boolean-expressions">Boolean expressions</a></li>
+<li><a href="#selection">Selection</a>
+<ul>
+<li><a href="#properties-of-selection">Properties of Selection</a></li>
+</ul></li>
+<li><a href="#projection">Projection</a>
+<ul>
+<li><a href="#handling-duplicates">Handling duplicates</a></li>
+<li><a href="#generalized-projection">Generalized Projection</a></li>
+</ul></li>
+<li><a href="#rename">Rename</a></li>
+<li><a href="#cartesian-product">Cartesian Product</a></li>
+<li><a href="#join">Join</a></li>
+</ul></li>
+<li><a href="#set-operations">Set Operations</a></li>
+<li><a href="#complete-set">Complete set</a></li>
+<li><a href="#aggregation-functions-and-grouping">Aggregation functions and grouping</a></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/60.dbdesign/l-60-502-rel-algebra/l-60-502.html#Practice_Problems">lesson link</a></p>
+<p><a href="https://dbis-uibk.github.io/relax/landing">Relational algebra calculator RelaX</a></p>
+<p>Relational algebra is the foundation for SQL. Operands do not map perfectly between relational algebra and SQL, since relational databases are not relations. However, it’s still an important tool for query abstraction and can be used to express queries without getting into syntactic nuance.</p>
+<p><br></p>
+<div id="queries-and-query-languages" class="section level1">
+<h1>Queries and Query Languages</h1>
+<p>Query languages retrieve data from storage, and fall into two types: * <strong>Procedural</strong>: accessing files in the system. R, Python, Java, etc. start at root folder and require search of all files to find a folder. Programmers define steps for the query and thus the procedure. Relational algebra is procedural. * <strong>Declarative</strong>: programmers define constraints that result must meet, dbms determins how to access and search the data.</p>
+<p><br></p>
+</div>
+<div id="relations-and-tuples" class="section level1">
+<h1>Relations and tuples</h1>
+<p><strong>Relation</strong>: set of <em>tuples</em> <span class="math inline">\((a_1, a_2, ..., a_n)\)</span> where each element is within a data domain, eg. <span class="math inline">\(a_j \in D_j\)</span>. The <em>degree of a relation</em> is the number of elements in each tuple.</p>
+<ul>
+<li>Relational schemas assign names to a relation and each element in the tuple: <span class="math inline">\(R(A_1, A_2, ..., A_n)\)</span>. This maps to a table name and table attributes. An <em>instance</em> of the relation will assign specific names.</li>
+</ul>
+<p><strong>Example</strong>: <span class="math inline">\(Employee(id, name, salary)\)</span> is a relation, with domains <span class="math inline">\(eid, ename \in TEXT\)</span> and <span class="math inline">\(esalary \in \mathbb{R}^+\)</span>.</p>
+<p>An instance of <span class="math inline">\(Employee\)</span> could be {(11107, “Peter”, 15), (1111, “Nina”, 50)}.</p>
+<p>The cardinality of this instance is <span class="math inline">\(|Employee| = 2\)</span>.</p>
+<p><br></p>
+</div>
+<div id="relational-algebra" class="section level1">
+<h1>Relational Algebra</h1>
+<p>The five primitive operators of relational algebra are <em>selection, projection, cartesian product (cross join), set union, set difference</em>. Set union, set difference, and cartesian product are borrowed from set theory and add additional constraints.</p>
+<p>Operators of relational algebra usually defined with Greek and German letters to distinguish from attributes.</p>
+<p>Sequences of relational algebra operations form an expression, which always results in a relation.</p>
+<div id="union-compatability" class="section level2">
+<h2>Union Compatability</h2>
+<p>Set union, set difference, and their derivatives require union compatibility, i.e. the two relations must have the same attribute set.</p>
+<p><span class="math inline">\(R_1\)</span> and <span class="math inline">\(R_2\)</span> are union compatible iff. <span class="math inline">\(degree(R_1) = degree(R_2) \land D(R^{A^i}_1 = D(R^{A^i}_2)\)</span>, where <span class="math inline">\(A_i\)</span> is the ith attribute and <span class="math inline">\(D(R^{A^i}_k\)</span> is the domain of the ith attribute of relation <span class="math inline">\(R_k\)</span>.</p>
+</div>
+<div id="boolean-expressions" class="section level2">
+<h2>Boolean expressions</h2>
+<p>Several algebra operations require <em>conditions</em>: a boolean logical expression containing 1+ clauses evaluation to true or false.</p>
+<p>Clauses are connected using <em>and</em> <span class="math inline">\(\land\)</span>, <em>or</em> <span class="math inline">\(\lor\)</span>, and <em>not</em> <span class="math inline">\(\lnot\)</span>.</p>
+<ul>
+<li><strong>conjunction</strong>: all clauses connected via <span class="math inline">\(\land\)</span></li>
+<li><strong>disjunction</strong>: all clauses connected via <span class="math inline">\(\lor\)</span>.</li>
+</ul>
+</div>
+<div id="selection" class="section level2">
+<h2>Selection</h2>
+<p>Selection is denoted with and used to choose a subset of tuples satisfying a selection condition, which is expressed as a Boolean logical operation and filters tuples.</p>
+<p>Selection operation on R is denoted by <span class="math inline">\(\sigma_{&lt;condition&gt;}(R)\)</span>. Example: <span class="math inline">\(\sigma_{(salary \geq 25000) \lor (salary \leq 100000)}(Employee)\)</span></p>
+<p>Selections are typically specified in the <code>WHERE</code> clause in SQL.</p>
+<div id="properties-of-selection" class="section level3">
+<h3>Properties of Selection</h3>
+<ul>
+<li>Selection is <em>unary</em> – it only applies to one relation</li>
+<li>The condition is applied to each tuple and thus can only involve 1 tuple</li>
+<li>degree of resultant relation = degree of incoming relation</li>
+<li>cardinality is always less than or equal to original
+<ul>
+<li><strong>selectivity</strong>: the percentage of tuples selected</li>
+</ul></li>
+<li>Selection is commutative and can always be transformed into a conjunction
+<ul>
+<li><span class="math inline">\(\sigma_{&lt;C_1&gt;}(\sigma_{&lt;C_2&gt;}(R)) = \sigma_{&lt;C_2&gt;}(\sigma_{&lt;C_1&gt;}(R)) = \sigma_{&lt;C_1&gt; \land &lt;C_2&gt;}(R))\)</span></li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div id="projection" class="section level2">
+<h2>Projection</h2>
+<p>Projection is denoted as and selects specific attributes from a relation. Equivalent to <code>dplyr::select()</code>.</p>
+<p>Denoted as <span class="math inline">\(\pi_{&lt;attributelist&gt;}(R)\)</span>, eg. <span class="math inline">\(\pi_{&lt;name, salary&gt;}(Employee)\)</span></p>
+<p>Properties:</p>
+<ul>
+<li>unary</li>
+<li>cardinality and degree of result &lt;= original
+<ul>
+<li>If the projection list is a <em>superkey</em> of R, then the cardinality will be equal.</li>
+</ul></li>
+<li>projection is not commutative</li>
+</ul>
+<div id="handling-duplicates" class="section level3">
+<h3>Handling duplicates</h3>
+<p>If attributes include non-key attributes, it’s likely that duplicate tuples might be part of resultant relation. However, since rel. algebra treats relations as sets (which cannot contain duplicates), duplicates from a projection are automatically eliminated.</p>
+<p>SQL does not automatically remove duplicates. Therefore we must use the <code>DISTINCT</code> keyword to ensure unique results</p>
+<p><span class="math display">\[\pi_{&lt;name, salary&gt;}(\sigma_{salary \geq 2500000}(Employee))\]</span></p>
+<pre class="sql"><code>SELECT DISTINCT name, salary
+  FROM Employee
+ WHERE salary &gt;= 250000;</code></pre>
+</div>
+<div id="generalized-projection" class="section level3">
+<h3>Generalized Projection</h3>
+<p>Generalized form of projection allows functions on attributes to be included and is expressed as <span class="math inline">\(\pi_{F_1, F_2, ..., F_j}(R)\)</span>, where each <span class="math inline">\(F_k\)</span> is a function over the attributes in <span class="math inline">\(R\)</span> and may include operations and scalar values.</p>
+</div>
+</div>
+<div id="rename" class="section level2">
+<h2>Rename</h2>
+<p>Relational algebra expressions can be cascaded/nested, it can become extremely long and unwieldy. Instead, decompose expressions into sequence of individual expressions, while renaming intermediary relations/attributes w/ <em>rename</em>.</p>
+<p>Rename is denoted with and takes the form <span class="math inline">\(\rho_{S(B_1, B_2, ..., B_n)}(R)\)</span>, which renames relation R to S and renames each attribute <span class="math inline">\(A_i\)</span> to <span class="math inline">\(B_i\)</span>.</p>
+<p><span class="math inline">\(\rho_E(\sigma_{salary≥250000}(Employee)) \rho_S(π_{name,salary}(E)) \rho_{Salaries(FullName,Salary)}(S)\)</span></p>
+<pre class="sql"><code>SELECT DISTINCT name AS FullName, salary AS Salary
+  FROM Employee E
+ WHERE E.salary &gt;= 250000;</code></pre>
+</div>
+<div id="cartesian-product" class="section level2">
+<h2>Cartesian Product</h2>
+<p>Binary operation denoted by . Relations do not have to be union compatible. Produces a new relation where each tuple from one relation is combined with every tuple of the other.</p>
+<p>Result of <span class="math inline">\(R \times S\)</span> has degree <span class="math inline">\(n + m\)</span> and cardinality of <span class="math inline">\(|R| \times |S|\)</span>.</p>
+<p>Cartesian product alone is not useful, but rather the foundation for joins.</p>
+<pre class="sql"><code>SELECT * 
+  FROM Employee E, City C</code></pre>
+</div>
+<div id="join" class="section level2">
+<h2>Join</h2>
+<p>Operation where selection occurs after Cartesian product operation. There are five types: cross join, equi-join (inner join), outer join, left outer join, and right outer join. There’s also a <em>theta join</em>, which is a more generalized equi-join.</p>
+<ul>
+<li><p><strong>Equi-join</strong>: Most common, symbolized by . Combines related tuples.</p>
+<p>General form is <span class="math inline">\(R_1 \Join_{&lt;join condition&gt;}R_2\)</span>, where <join condition> is the matching attributes in the relations.</p></li>
+<li><p><strong>Theta join</strong>: Similar to equi-join except that the join condition can be anything, not just equality. Denoted by .</p></li>
+<li><p><strong>Left Outer Join</strong>: Expressed as <span class="math inline">\(R _*\Join S\)</span> and contains all tuples that meet join condition as well as tuples in <span class="math inline">\(R\)</span> for which no matches are found – missing attributes padded with NULL. <em>Outer joins</em> and <em>Right Outer Joins</em> can be expressed as a function of the left outer join.</p></li>
+</ul>
+<p><br></p>
+</div>
+</div>
+<div id="set-operations" class="section level1">
+<h1>Set Operations</h1>
+<p>Important part of relational algebra are standard mathematical operations. All set operations are binary and all operands must be <em>union compatible</em>.</p>
+<ul>
+<li><p><strong>Set Union</strong></p>
+<p>A union <span class="math inline">\(R \cup S\)</span> is the combination of tuples of two relations with duplicates removed. Note that domains of attributes must be the same but may often not be truly compatible.</p></li>
+<li><p><strong>Set Difference</strong></p>
+<p>The set difference <span class="math inline">\(R - S\)</span> includes all tuples that are in <span class="math inline">\(R\)</span> but not <span class="math inline">\(S\)</span>.</p></li>
+<li><p><strong>Set Intersection</strong></p>
+<p>The set intersection <span class="math inline">\(R \cap S\)</span> includes all tuples both in <span class="math inline">\(R\)</span> and <span class="math inline">\(S\)</span>.</p></li>
+</ul>
+</div>
+<div id="complete-set" class="section level1">
+<h1>Complete set</h1>
+<p>The set of foundational relational algebra operations are <span class="math inline">\(\{\sigma, \pi, \cup, \rho, -, \times\}\)</span> and form a complete set, meaning that all other relational algebra operations can be expressed as a combo of them.</p>
+<p>Eg. equi-join: <span class="math inline">\(R \Join_{&lt;condition&gt;} = \sigma_{&lt;condition&gt;}(R \times S)\)</span></p>
+</div>
+<div id="aggregation-functions-and-grouping" class="section level1">
+<h1>Aggregation functions and grouping</h1>
+<p>Basic relational algebra doesn’t support grouping or aggregate methods. However these are important for queries.</p>
+<p>Extended relational algebra adds an <em>aggregate function</em> operation, denoted as <span class="math inline">\(_{&lt;grouping&gt;}\mathfrak{F}_{&lt;functions&gt;}(R)\)</span>. <em>functions</em> can be count, sum, avg, min, and max. Either of the clauses are optional.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

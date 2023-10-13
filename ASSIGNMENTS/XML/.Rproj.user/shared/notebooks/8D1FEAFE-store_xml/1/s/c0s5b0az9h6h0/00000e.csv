@@ -1,0 +1,3 @@
+"0","SELECT b.price AS Price, a.aname AS Author
+  FROM Book b INNER JOIN Author a ON (b.author = a.aid)
+ WHERE b.price/(SELECT AVG(price) FROM Book) NOT BETWEEN .8 AND 1.2"

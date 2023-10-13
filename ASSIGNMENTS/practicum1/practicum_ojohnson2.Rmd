@@ -1,0 +1,398 @@
+---
+title: "Practicum 1"
+author: "Omi Johnson ( johnson.omi@northeastern.edu ) and Bridget Leary ( leary.br@northeastern.edu )"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**NOTE** Please run `CREATE DATABASE Practicum1` within MySQL workbench before attempting to run this code. We do not know how to create the database within R since we cannot establish a connection before it exists. 
+
+## Question 1: Establishing the Database
+
+**Connecting to the database**
+```{r}
+# loading packages RMySQL and dplyr (for grouping)
+packages <- c("RMySQL", "dplyr", "readr")
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(!installed_packages)) {
+  install.packages(packages[!installed_packages])
+}
+invisible(lapply(packages, library, character.only = TRUE))
+
+# 1. Library
+library(RMySQL)
+library(dplyr)
+
+# 2. Settings
+db_user <- 'root'
+db_password <- '587DJLOTL4mys'
+db_name <- 'practicum1'
+db_host <- 'localhost'
+db_port <- 3306
+
+# 3. Read data from db
+mydb <-  dbConnect(MySQL(), user = db_user, password = db_password,
+                 dbname = db_name, host = db_host, port = db_port)
+```
+
+```{sql connection = mydb}
+SET GLOBAL local_infile = 1;
+```
+
+<br>
+
+**Creating Tables**
+```{sql connection = mydb}
+DROP TABLE IF EXISTS incidents;
+```
+```{sql connection = mydb}
+DROP TABLE IF EXISTS airports;
+```
+```{sql connection = mydb}
+DROP TABLE IF EXISTS conditions;
+```
+
+**Airports**: We decided that only `airportName` needs to be not null, as `airportCode` and `airportState` may be unfilled in practice. We decided to add auto_increment for the `aid` for ease of insertion for new airport values. 
+
+```{sql connection = mydb}
+CREATE TABLE IF NOT EXISTS airports (
+  aid INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  airportName TEXT NOT NULL,
+  airportCode TEXT,
+  state TEXT
+);
+```
+
+**Conditions**: We decided that `ccondition` must be not null so that the row is meaningful. We chose to use auto_increment for the `cid` for ease of insertion. 
+
+```{sql connection = mydb}
+CREATE TABLE IF NOT EXISTS conditions (
+  cid INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  ccondition TEXT NOT NULL, -- renamed to avoid overlap with reserved keyword
+  explanation TEXT
+);
+```
+
+**Incidents**: 
+
+* We decided that the only needed information to create an incident is the `rid` and `idate`. We made this decision because some of the queries concerned date and year, suggesting that a crucial use for this database would be to examine time-based trends (therefore making date essential). 
+* `rid` is not auto-incremented because the existing database had an existing `rid` column, suggesting that the `rid` might be determined by another, superior authority party. 
+* We chose to not use a lookup table for flightPhase for simplicity and because we reasonably assumed these four phases would stay static. 
+
+```{sql connection = mydb}
+CREATE TABLE IF NOT EXISTS incidents (
+  rid INTEGER NOT NULL PRIMARY KEY,
+  idate DATE NOT NULL, -- renamed to idate to avoid overlap with reserved keyword
+  origin INTEGER NOT NULL,
+  airline TEXT,
+  aircraft TEXT,
+  flightPhase TEXT,
+  altitude INTEGER,
+  conditions INTEGER,
+  warning TINYINT(1), 
+  CONSTRAINT or_is_fk FOREIGN KEY (origin) REFERENCES airports(aid),
+  CONSTRAINT con_is_fk FOREIGN KEY (conditions) REFERENCES conditions(cid),
+  CHECK (flightPhase IN ('takeoff', 'landing', 'inflight', 'unknown'))
+);
+```
+
+## Questions 1 & 2: Loading the data 
+
+```{r}
+birdstrikes <- readr::read_csv("BirdStrikesData-V2.csv", 
+                               col_types = readr::cols())
+```
+
+### Data preprocessing 
+
+**Selecting and renaming relevant columns, removing null values**
+
+Notes on missing values: We decided that the essential columns for an incident entry were rid and flight date. Every null value in relevant columsn of the `BirdStrikesData-V2.csv` file is in the same row as a missing flight date; therefore we chose to just call `na.omit()` on the dataset as all null values were within unsuitable rows. 
+
+```{r}
+relevant_columns <- c("rid", "flight_date", "airline", "aircraft",
+                      "flight_phase", "altitude_ft", "pilot_warned_flag",
+                      "airport", "origin", # for airports
+                      "sky_conditions") # for conditions 
+
+birdstrikes <- birdstrikes[,relevant_columns] |>
+  na.omit()
+
+colnames(birdstrikes) <- c("rid", "idate", "airline", "aircraft", 
+                           "flightPhase", "altitude", "warning", # incidents
+                           "airportName", "state", # airport
+                           "ccondition") # conditions
+```
+
+**Normalizing columns to specifications**
+
+* For harmonization, we chose to code "Climb" and "Descent" as "inflight" rather than "takeoff"/"landing" respectively so that we would have entries for the inflight column. These two flight stages are technically inflight and therefore we think is reasonable. Additionally, we coded "Taxi" and "Parked" as unknown because it is not clear whether these phases were before or after the flight itself. 
+
+```{r}
+# 1A: Converting date column
+birdstrikes$idate <- as.Date(birdstrikes$idate, "%m/%d/%Y")
+
+# 1A: Making warning true or false
+birdstrikes$warning <- birdstrikes$warning == "Y"
+
+# 1G: Remove military flights
+birdstrikes <- birdstrikes[birdstrikes$airline != "MILITARY",]
+
+# 1E: Harmonize flight phases
+birdstrikes$flightPhase <- birdstrikes$flightPhase |>
+  sapply(function(phase) switch(phase, 
+                                "Take-off run" = "takeoff",
+                                "Climb" = "inflight",
+                                "Descent" = "inflight",
+                                "Landing Roll" = "landing",
+                                "Approach" = "landing",
+                                "Taxi" = "unknown",
+                                "Parked" = "unknown"))
+```
+
+**Creating airport dataframe and keys**
+
+Note the use of the `dplyr` package to enable grouping operations. We chose to use this package because it allows us to manipulate the data similarly to how we would in SQL. 
+
+```{r}
+airports_df <- birdstrikes[,c("airportName", "state")] |>
+  dplyr::group_by(airportName, state) |>
+  dplyr::summarize(.groups = "keep") |>
+  dplyr::ungroup()
+
+airports_df$aid <- 1:nrow(airports_df)
+airports_df$airportCode <- NA
+
+birdstrikes <- merge(birdstrikes, airports_df, 
+                     by = c("airportName", "state"),
+                     all = TRUE)
+```
+
+**Creating conditions dataframe and keys**
+
+```{r}
+conditions_df <- data.frame(ccondition = unique(birdstrikes$ccondition),
+                            explanation = NA)
+
+conditions_df$cid <- 1:nrow(conditions_df)
+
+birdstrikes <- merge(birdstrikes, conditions_df, 
+      by = c("ccondition"),
+      all = TRUE)
+```
+
+**Creating incidents dataframe**
+
+```{r}
+incidents_df <- birdstrikes[,c("rid", "idate", "airline", "aircraft", 
+                               "flightPhase", "altitude", "warning",
+                               "aid", "cid")] |>
+  dplyr::rename(origin = aid, 
+                conditions = cid)
+```
+
+### Uploading dataframes to database
+
+```{r}
+dbWriteTable(mydb, "conditions", conditions_df, 
+             append = TRUE, row.names = FALSE)
+dbWriteTable(mydb, "airports", airports_df, 
+             append = TRUE, row.names = FALSE)
+dbWriteTable(mydb, "incidents", incidents_df, 
+             append = TRUE, row.names = FALSE)
+```
+
+## Question 3: Displaying parts of the table
+
+All notes on design decisions contained in Questions 1 and 2. 
+
+```{sql connection = mydb}
+SELECT * FROM incidents LIMIT 10;
+```
+
+```{sql connection = mydb}
+SELECT * FROM airports LIMIT 10;
+```
+
+```{sql connection = mydb}
+SELECT * FROM conditions LIMIT 10;
+```
+
+## Query Questions
+
+### Question 4
+
+**Find the 10 airlines with the greatest number of incidents.**
+
+```{sql connection = mydb}
+SELECT airline 
+  FROM incidents
+ GROUP BY airline
+ ORDER BY COUNT(*) DESC
+ LIMIT 10;
+```
+
+### Question 5
+
+**Find the flight phase that had an above average number bird strike incidents (during any flight phase).**
+
+```{sql connection = mydb}
+WITH phaseCounts AS (SELECT flightPhase, COUNT(*) as fcount
+        FROM incidents
+       GROUP BY flightPhase) 
+SELECT flightPhase
+  FROM phaseCounts
+ WHERE fcount > (SELECT AVG(fcount) FROM phaseCounts);
+```
+
+### Question 6
+
+**Find the number of bird strike incidents by month (across all years). Include all airlines and all flights.** 
+
+According to these results, the fewest number of birdstrikes occur during the Northern Hemisphere winter (January-February) and the most birdstrikes occur in August. 
+
+```{sql connection = mydb}
+SELECT MONTH(idate) AS month, COUNT(*) AS num_incidents
+  FROM incidents
+ GROUP BY month
+ ORDER BY month;
+```
+
+### Question 7
+
+```{r}
+yearly_strikes <- 
+  dbGetQuery(mydb, "SELECT YEAR(idate) AS year, COUNT(*) AS num_incidents
+                      FROM incidents
+                     GROUP BY year
+                    HAVING year >= 2005 AND year <= 2011
+                     ORDER BY year")
+
+plot(x = yearly_strikes$year, 
+     y = yearly_strikes$num_incidents, 
+     type = "o",
+     xlab = "Year", 
+     ylab = "Number of Bird Strikes",
+     main = "Yearly Bird Strike Incidents")
+```
+
+## Question 8: Creating a procedure
+
+### Procedure Creation
+
+Create a stored procedure in MySQL (note that if you used SQLite, then you cannot complete this step) that adds a new incident to the database. You may decide what you need to pass to the stored procedure to add a bird strike incident and you must account for there being potentially a new airport. After insertion, show (in R) that your procedure worked. Note that if you used SQLite rather than the required MySQL for the practicum, then you cannot complete this question as SQLite does not support stored procedures.
+
+```{sql connection = mydb}
+DROP PROCEDURE IF EXISTS new_incident;
+```
+
+**Design decisions**
+
+* `airportName` and `airline` will both be transformed to "UNKNOWN" if NULL. 
+* the `airportName` parameter is intended to uniquely identify an in the `airports` table. We chose to use `airportName` instead of an `aid` because `airportName` should still be unique and we wanted to create a user-friendly method. 
+* Note the creation and as necessary linking to the "UNKNOWN" airport. 
+
+```{sql connection = mydb}
+CREATE PROCEDURE new_incident(
+  new_rid INTEGER, 
+  new_idate DATE,
+  new_airline TEXT,
+  new_aircraft TEXT,
+  new_flightPhase TEXT,
+  new_altitude INTEGER,
+  new_warning TINYINT(1),
+  new_conditions INTEGER, 
+  new_airportName TEXT
+) 
+BEGIN
+  -- making airportname not null
+  IF (new_airportName IS NULL) THEN
+    SET new_airportName = "UNKNOWN";
+  END IF;
+  
+  -- making airline name not null
+  IF (new_airline IS NULL) THEN
+    SET new_airline = "UNKNOWN";
+  END IF;
+  
+  -- creating new airport entry, if necessary
+  IF (SELECT aid
+        FROM airports
+       WHERE airportName LIKE new_airportName) IS NULL THEN
+    INSERT INTO airports (airportName, airportCode, state) VALUES
+      (new_airportName, NULL, NULL);
+  END IF;
+  
+  -- finding appropriate aid
+  SELECT aid
+    FROM airports
+   WHERE airportName LIKE new_airportName
+    INTO @aid;
+  
+  -- inserting into incidents
+  INSERT INTO incidents VALUES
+    (new_rid, new_idate, @aid, new_airline, new_aircraft, new_flightPhase, 
+    new_altitude, new_conditions, new_warning);
+END;
+```
+
+### Procedure Testing 
+
+Testing that insertion correctly renames NULL `airportName` and `airline` values and can insert a new airport (in this case, "UNKNOWN") into the `airports` table. 
+
+```{sql connection = mydb}
+CALL new_incident(
+  1, "2022-10-22", NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+```
+
+Testing that insertion correctly passes non-null values to insertion and can reference existing `airportName` values. 
+
+```{sql connection = mydb}
+CALL new_incident(
+  2,  "2022-10-23", "BUSINESS", "Airplane", "Landing", 589, FALSE, 2,  
+  "GREATER ROCKFORD")
+```
+Testing that insertion correctly creates new non-sentinel airport entry. 
+
+```{sql connection = mydb}
+CALL new_incident(
+  3,  "2029-10-31", "SPIRIT AIRLINES", "Giant Bat", NULL, -6, FALSE, 1,  
+  "SALEM INTL SCAREPORT")
+```
+
+Testing that procedure doesn't bypass incidents table restrictions (eg. no duplicate values). Expect error. 
+
+```{sql connection = mydb, error = TRUE}
+CALL new_incident(
+  2,  "2022-10-23", "BUSINESS", "Airplane", "Landing", 589, FALSE, 2,  
+  "GREATER ROCKFORD")
+```
+
+Showing new rows in incidents table. Note successful creation of 3 new rows. 
+```{r}
+query <- "SELECT * FROM incidents WHERE rid IN (1, 2, 3)"
+
+dbGetQuery(mydb, query)
+```
+
+Showing new rows in airports table. Note 3 rows, two of which are new and one existing. 
+```{r}
+query <- "SELECT * FROM airports 
+ WHERE aid IN (SELECT origin FROM incidents WHERE rid IN (1, 2, 3));"
+
+dbGetQuery(mydb, query)
+```
+
+## Disconnecting
+
+```{r}
+dbDisconnect(mydb)
+```
+
+
+

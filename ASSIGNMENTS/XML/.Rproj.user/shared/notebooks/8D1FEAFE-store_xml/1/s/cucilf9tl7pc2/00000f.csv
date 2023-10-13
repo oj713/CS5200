@@ -1,0 +1,8 @@
+"0","library(XML)"
+"0","library(stringr)"
+"0",""
+"0","xml <- xmlParse(""Books-v3.xml"")"
+"0",""
+"0","xpath_help <- function(...) {"
+"0","  xpathSApply(xml, paste0(...))"
+"0","}"

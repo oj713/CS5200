@@ -1,0 +1,4 @@
+"0","CREATE VIEW IF NOT EXISTS artists_tracks AS
+SELECT a.*, t.trackId, t.GenreId, t.Milliseconds   
+  FROM (artists a LEFT JOIN albums al ON (a.ArtistId = al.ArtistId))
+                  LEFT JOIN tracks t ON (al.AlbumId = t.AlbumId)"

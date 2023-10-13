@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Joins</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Data Retrieval</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Introduction</a>
+</li>
+<li>
+  <a href="select.html">SELECT</a>
+</li>
+<li>
+  <a href="where.html">WHERE</a>
+</li>
+<li>
+  <a href="joins.html">Joins</a>
+</li>
+<li>
+  <a href="aggregation.html">Aggregation</a>
+</li>
+<li>
+  <a href="advanced.html">Advanced</a>
+</li>
+<li>
+  <a href="views.html">Views and Subqueries</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Joins</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#sample-database">Sample Database</a></li>
+<li><a href="#cartesian-product">Cartesian Product</a></li>
+<li><a href="#inner-join">Inner Join</a></li>
+<li><a href="#joining-multiple-tables">Joining Multiple tables</a></li>
+<li><a href="#outer-joins">Outer Joins</a></li>
+<li><a href="#anti-join">Anti-Join</a></li>
+<li><a href="#self-joins">Self Joins</a></li>
+</ul>
+</div>
+
+<p>Joins are essential to queries involving data that spans multiple tables. Note that the <strong>cross join</strong> is not covered.</p>
+<div id="sample-database" class="section level2">
+<h2>Sample Database</h2>
+<pre class="r"><code>library(RSQLite)
+db &lt;- dbConnect(SQLite(), &quot;:memory:&quot;)</code></pre>
+<pre class="sql"><code>/* foreign key is off to allow dangling references */
+PRAGMA foreign_keys = OFF</code></pre>
+<pre class="sql"><code>create table office (
+ oid integer primary key,
+ num text
+);</code></pre>
+<pre class="sql"><code>create table empl (
+ eid integer primary key,
+ name text,
+ oid integer,
+ foreign key (oid) references office(oid)
+);</code></pre>
+<p>Note that some employees do not have an office, and vice versa.</p>
+<pre class="sql"><code>insert into office values 
+ (10,&quot;NI 132F&quot;),
+ (20,&quot;WVH 310A&quot;),
+ (30,&quot;RY 611&quot;),
+ (40,&quot;CH 103&quot;),
+ (50,&quot;106A&quot;);</code></pre>
+<pre class="sql"><code>insert into empl values 
+ (601,&quot;Jeff Goldblum&quot;,10),
+ (602,&quot;Ann Hathaway&quot;,20),
+ (603,&quot;Michael Keaton&quot;,30),
+ (604,&quot;Jennifer Hudson&quot;,NULL),
+ (605,&quot;Mark Wahlberg&quot;,44),
+ (609,&quot;Helen Miren&quot;, 50);</code></pre>
+</div>
+<div id="cartesian-product" class="section level2">
+<h2>Cartesian Product</h2>
+<p>When query contains 2+ tables in <em>FROM</em>, SQL produces Cartesian Product of the tables, i.e. all combinations of rows</p>
+<ul>
+<li>note that foreign key and primary key only match on some rows</li>
+</ul>
+<pre class="sql"><code>select * from empl, office;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>Displaying records 1 - 10</caption>
+<thead>
+<tr class="header">
+<th align="right">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+<th align="right">oid</th>
+<th align="left">num</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="even">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">30</td>
+<td align="left">RY 611</td>
+</tr>
+<tr class="even">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">40</td>
+<td align="left">CH 103</td>
+</tr>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">50</td>
+<td align="left">106A</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="odd">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">30</td>
+<td align="left">RY 611</td>
+</tr>
+<tr class="odd">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">40</td>
+<td align="left">CH 103</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">50</td>
+<td align="left">106A</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><br></p>
+</div>
+<div id="inner-join" class="section level2">
+<h2>Inner Join</h2>
+<p>Inner join is the most common form of join - joins rows of two tables such that PK in one table matches FK in other.</p>
+<ul>
+<li><p><strong>Standard WHERE Clause with PK/FK Matching</strong></p>
+<p>Simple and common, but not as obvious as other methods.</p>
+<pre class="sql"><code>select e.name as EmployeeName, o.num as OfficeNum
+  from empl as e, office as o
+ where e.oid = o.oid;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>4 records</caption>
+<thead>
+<tr class="header">
+<th align="left">EmployeeName</th>
+<th align="left">OfficeNum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Jeff Goldblum</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="even">
+<td align="left">Ann Hathaway</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="odd">
+<td align="left">Michael Keaton</td>
+<td align="left">RY 611</td>
+</tr>
+<tr class="even">
+<td align="left">Helen Miren</td>
+<td align="left">106A</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+<li><p><strong>Inner Join Syntax</strong></p>
+<p>Preferred method, clearly expresses join and separates join clause from other selection criteria. Note that <code>inner</code> keyword is optional.</p>
+<pre class="sql"><code>select *
+  from empl e inner join office o on (e.oid = o.oid);</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>4 records</caption>
+<thead>
+<tr class="header">
+<th align="right">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+<th align="right">oid</th>
+<th align="left">num</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="odd">
+<td align="right">603</td>
+<td align="left">Michael Keaton</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">RY 611</td>
+</tr>
+<tr class="even">
+<td align="right">609</td>
+<td align="left">Helen Miren</td>
+<td align="right">50</td>
+<td align="right">50</td>
+<td align="left">106A</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+<li><p><strong>Natural Join</strong></p>
+<p>A natural join is an inner join where the database matches tables based on common column names.</p>
+<ul>
+<li>This won’t work as expected if any columns other than the PK/FK columns have matching names.</li>
+</ul>
+<pre class="sql"><code>select * from empl natural join office;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>4 records</caption>
+<thead>
+<tr class="header">
+<th align="right">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+<th align="left">num</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="odd">
+<td align="right">603</td>
+<td align="left">Michael Keaton</td>
+<td align="right">30</td>
+<td align="left">RY 611</td>
+</tr>
+<tr class="even">
+<td align="right">609</td>
+<td align="left">Helen Miren</td>
+<td align="right">50</td>
+<td align="left">106A</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+</ul>
+</div>
+<div id="joining-multiple-tables" class="section level2">
+<h2>Joining Multiple tables</h2>
+<p>Joining multiple tables is achieved by sequentially joining pairs of tables. All tables must be connected by some path to any other table.</p>
+<pre class="sql"><code>create table campus (
+ cid text primary key,
+ name text not null,
+ city text not null,
+ state text not null,
+ country text not null
+);</code></pre>
+<pre class="sql"><code>alter table office
+  add column cid text;</code></pre>
+<pre class="sql"><code>insert into campus values 
+ (&#39;BOS&#39;, &#39;Main Campus Boston&#39;, &#39;Boston&#39;, &#39;MA&#39;, &#39;USA&#39;),
+ (&#39;SV&#39;, &#39;Silicon Valley&#39;, &#39;San Jose&#39;, &#39;CA&#39;, &#39;USA&#39;),
+ (&#39;TOR&#39;, &#39;Toronto&#39;, &#39;Toronto&#39;, &#39;ON&#39;, &#39;Canada&#39;),
+ (&#39;SEA&#39;, &#39;Seattle&#39;, &#39;Seattle&#39;, &#39;WA&#39;, &#39;USA&#39;);</code></pre>
+<pre class="sql"><code>update office
+   set cid = &#39;BOS&#39;
+ where oid IN (10, 20, 30, 40);</code></pre>
+<pre class="sql"><code>update office
+   set cid = &#39;SEA&#39;
+ where oid IN (50);</code></pre>
+<p>Now, to join, we can use WHERE clause or a join statement like above.</p>
+<pre class="sql"><code>/* not evaluated */
+select e.name, o.num, c.name
+  from empl e, office o, campus c
+ where e.oid = o.oid and o.cid = c.cid;</code></pre>
+<pre class="sql"><code>select e.name, o.num, c.name
+  from empl e join office o on (e.oid = o.oid)
+              join campus c on (o.cid = c.cid);</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>4 records</caption>
+<thead>
+<tr class="header">
+<th align="left">name</th>
+<th align="left">num</th>
+<th align="left">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Jeff Goldblum</td>
+<td align="left">NI 132F</td>
+<td align="left">Main Campus Boston</td>
+</tr>
+<tr class="even">
+<td align="left">Ann Hathaway</td>
+<td align="left">WVH 310A</td>
+<td align="left">Main Campus Boston</td>
+</tr>
+<tr class="odd">
+<td align="left">Michael Keaton</td>
+<td align="left">RY 611</td>
+<td align="left">Main Campus Boston</td>
+</tr>
+<tr class="even">
+<td align="left">Helen Miren</td>
+<td align="left">106A</td>
+<td align="left">Seattle</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outer-joins" class="section level2">
+<h2>Outer Joins</h2>
+<p>Outer join has three different types, each of which add a specified set of unmatched rows.</p>
+<ul>
+<li><p><strong>Left Outer Join</strong></p>
+<p>Left outer joins select all common rows plus all unmatched rows from the left table in join specification. Unmatched rows have missing information populated with NA.</p>
+<pre class="sql"><code>select *
+  from empl e left join office o on (e.oid = o.oid)</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>6 records</caption>
+<thead>
+<tr class="header">
+<th align="right">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+<th align="right">oid</th>
+<th align="left">num</th>
+<th align="left">cid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+<td align="left">BOS</td>
+</tr>
+<tr class="even">
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+<td align="left">BOS</td>
+</tr>
+<tr class="odd">
+<td align="right">603</td>
+<td align="left">Michael Keaton</td>
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">RY 611</td>
+<td align="left">BOS</td>
+</tr>
+<tr class="even">
+<td align="right">604</td>
+<td align="left">Jennifer Hudson</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">605</td>
+<td align="left">Mark Wahlberg</td>
+<td align="right">44</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="right">609</td>
+<td align="left">Helen Miren</td>
+<td align="right">50</td>
+<td align="right">50</td>
+<td align="left">106A</td>
+<td align="left">SEA</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Note that this can be used to find unmatched rows and missing fks, which usually can’t happen but might with low-quality imported data.</p>
+<pre class="sql"><code>/* find missing FK&#39;s and rows with missing offices */
+select *
+  from empl e left join office o on (e.oid = o.oid)
+except
+select *
+  from empl e inner join office o on (e.oid = o.oid);</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>2 records</caption>
+<thead>
+<tr class="header">
+<th align="left">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+<th align="right">oid</th>
+<th align="left">num</th>
+<th align="left">cid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">604</td>
+<td align="left">Jennifer Hudson</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">605</td>
+<td align="left">Mark Wahlberg</td>
+<td align="right">44</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="sql"><code>/* find dangling references */
+select e.name, e.oid
+  from empl e left join office o on (e.oid = o.oid)
+except
+select e.name, e.oid
+  from empl e inner join office o on (e.oid = o.oid)
+except
+select e.name, e.oid
+  from empl e
+ where e.oid is null;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>1 records</caption>
+<thead>
+<tr class="header">
+<th align="left">name</th>
+<th align="right">oid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mark Wahlberg</td>
+<td align="right">44</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+<li><p><strong>Right Outer Join</strong></p>
+<p>This is the same as a left outer join except that unmatched rows come from table on the right. This isn’t explicitly supported, so just reverse a left join.</p>
+<pre class="sql"><code>select * from office o left join empl e on (e.oid = o.oid);</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>5 records</caption>
+<thead>
+<tr class="header">
+<th align="right">oid</th>
+<th align="left">num</th>
+<th align="left">cid</th>
+<th align="right">eid</th>
+<th align="left">name</th>
+<th align="right">oid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">10</td>
+<td align="left">NI 132F</td>
+<td align="left">BOS</td>
+<td align="right">601</td>
+<td align="left">Jeff Goldblum</td>
+<td align="right">10</td>
+</tr>
+<tr class="even">
+<td align="right">20</td>
+<td align="left">WVH 310A</td>
+<td align="left">BOS</td>
+<td align="right">602</td>
+<td align="left">Ann Hathaway</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="right">30</td>
+<td align="left">RY 611</td>
+<td align="left">BOS</td>
+<td align="right">603</td>
+<td align="left">Michael Keaton</td>
+<td align="right">30</td>
+</tr>
+<tr class="even">
+<td align="right">40</td>
+<td align="left">CH 103</td>
+<td align="left">BOS</td>
+<td align="right">NA</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">50</td>
+<td align="left">106A</td>
+<td align="left">SEA</td>
+<td align="right">609</td>
+<td align="left">Helen Miren</td>
+<td align="right">50</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+<li><p><strong>Right Outer Join</strong></p>
+<p>Full outer join is the union of a left and right outer join, showing all matching rows as well as unmatched rows from the right and left table.</p>
+<ul>
+<li>For this to work, column order must be explicitly specified: <code>*</code> doesn’t work as queries return columns in different orders.</li>
+</ul>
+<pre class="sql"><code>select e.name, o.num
+  from office o left join empl e on (e.oid = o.oid)
+union
+select e.name, o.num
+  from empl e left join office o on (e.oid = o.oid)</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>7 records</caption>
+<thead>
+<tr class="header">
+<th align="left">name</th>
+<th align="left">num</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">NA</td>
+<td align="left">CH 103</td>
+</tr>
+<tr class="even">
+<td align="left">Ann Hathaway</td>
+<td align="left">WVH 310A</td>
+</tr>
+<tr class="odd">
+<td align="left">Helen Miren</td>
+<td align="left">106A</td>
+</tr>
+<tr class="even">
+<td align="left">Jeff Goldblum</td>
+<td align="left">NI 132F</td>
+</tr>
+<tr class="odd">
+<td align="left">Jennifer Hudson</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Mark Wahlberg</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Michael Keaton</td>
+<td align="left">RY 611</td>
+</tr>
+</tbody>
+</table>
+</div></li>
+</ul>
+</div>
+<div id="anti-join" class="section level2">
+<h2>Anti-Join</h2>
+<p>In an anti-join we’re looking to find all rows that are in one table, but not in the other. To do this, do a left join and then filter out anything where the FK is NULL.</p>
+<pre class="sql"><code>select o.oid, o.cid
+  from office as o
+  left join empl as e on (o.oid = e.oid)
+ where e.oid = null;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>0 records</caption>
+<thead>
+<tr class="header">
+<th align="right">oid</th>
+<th align="left">cid</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+</div>
+<div id="self-joins" class="section level2">
+<h2>Self Joins</h2>
+<p>self joins can be useful on associative join tables to determine membership to multiple groups.</p>
+<pre class="sql"><code>/* determine which students were assigned to both Teams A and B */
+select * 
+  from StudentTeamAssignment a1
+  join StudentTeamAssignment a2 on a1.StudentFK = a2.StudentFK
+ where a1.TeamFK = &#39;A&#39; AND a2.TeamFK = &#39;B&#39;;</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

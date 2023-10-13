@@ -1,0 +1,61 @@
+---
+title: "Explore and Mine Data"
+author: "Omi Johnson and Bridget Leary"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RMySQL)
+
+dw <-  dbConnect(MySQL(), 
+                 user = 'root', 
+                 password = '587DJLOTL4mys',
+                 dbname = 'starschema', 
+                 host = 'localhost', 
+                 port = 3306)
+```
+
+## Most Published Authors
+
+Below is a table of the 10 authors with the most publications, as well as the number of publications in question and their Author identification number. 
+
+```{sql connection=dw, echo = FALSE}
+SELECT aid AS `Author ID`, 
+       CONCAT(ForeName, " ", LastName) AS `Author Name`,
+       numArticles AS `Number of Publications`
+  FROM AuthorFact
+ ORDER BY numArticles DESC
+ LIMIT 10
+```
+The most published author was E. Costa, with a total of 37 publications. 
+
+R J Lefkowitz and P Mandel have the same number of publications (25) and could be switched arbitrarily. 
+
+## Journal Publications by Year and Quarter
+
+Below is a table of each journal's number of publications, broken down by year and quarter. Each year is its own row, with the "Q1", "Q2", "Q3", and "Q4" columns representing the number of publications during the quarter of the year listed in that row. The "Total Articles" columns lists the total number of publications during a specific year for a journal.
+
+Please note that some journals have yearly releases and therefore no quarter information is available. For these journals, quarter information is listed as "NA" but the total publication count is still viewable under the "Total Articles" column. 
+
+```{sql connection=dw, echo = FALSE}
+SELECT jf.jid AS `Journal ID`,
+       jf.Title AS `Journal Title`,
+       pd.PubYear AS `Year`,
+       SUM(pd.pubQuarter = 1) AS Q1,
+       SUM(pd.pubQuarter = 2) AS Q2,
+       SUM(pd.pubQuarter = 3) AS Q3,
+       SUM(pd.pubQuarter = 4) AS Q4,
+       COUNT(*) AS `Total Articles`
+  FROM PublicationDimension pd
+ INNER JOIN JournalFact jf ON (jf.jid = pd.jid)
+ GROUP BY jf.jid, pd.PubYear
+ ORDER BY jf.jid, pd.PubYear
+```
+
+```{r, include = FALSE}
+dbDisconnect(dw)
+```

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Query Planning/Processing</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Indices and Storage</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Indexing Methods</a>
+</li>
+<li>
+  <a href="indexing_sqlite.html">Indexing in SQLite</a>
+</li>
+<li>
+  <a href="query_pp.html">Query Planning/Processing</a>
+</li>
+<li>
+  <a href="datastorage_disks_raid.html">Data Storage and RAID</a>
+</li>
+<li>
+  <a href="reliability_availability.html">Reliability and Availability</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Query Planning/Processing</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#query-evaluation-process">Query Evaluation Process</a>
+<ul>
+<li><a href="#translation">Translation</a></li>
+</ul></li>
+<li><a href="#ordering-results">Ordering Results</a></li>
+<li><a href="#access-operations">Access Operations</a></li>
+<li><a href="#query-costing">Query Costing</a></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/60.dbdesign/l-60-551-query-processing/l-60-551.html">lesson link</a></p>
+<p>Query processing: activities involved in carrying out a client command’s request</p>
+<ul>
+<li>involves translation of SQL statement to low-level access operations, query optimization, actual access of data</li>
+<li>Query optimization involved translation to relational algebra, specifiying alternative but equivalent query execution plans, scoring each plan based on time/memory/access, determining the most efficient plan</li>
+</ul>
+<div id="query-evaluation-process" class="section level2">
+<h2>Query Evaluation Process</h2>
+<p>There are three phases to query processing: parsing/translation, optimization, and execution. During parsing, the parser performs a syntax check of the SQL statement.</p>
+<div class="figure">
+<img src="query_planning_image.png" alt="" />
+<p class="caption">query evaluation process</p>
+</div>
+<div id="translation" class="section level3">
+<h3>Translation</h3>
+<ul>
+<li>The query is translated into any equivalent extended relational algebra expressions.</li>
+</ul>
+<p><strong>Parse trees</strong>: since there are multiple ways to express a query, the expression is represented as a parse tree.</p>
+<ul>
+<li><em>equivalence rules</em> include a variety of methods to transform queries into alternative forms. Some of those rules are listed on reference page.</li>
+</ul>
+<pre class="sql"><code>select title, price
+  from articles
+ where price &lt; 10;</code></pre>
+<p><span class="math inline">\(\sigma_{price&lt;10}(\pi_{title, price}(articles))\)</span> OR <span class="math inline">\(\pi_{title, price}(\sigma_{price&lt;10}(articles))\)</span></p>
+<p>Parse tree for first query:</p>
+<div class="figure">
+<img src="parsetree.png" alt="" />
+<p class="caption">Parse tree</p>
+</div>
+<ul>
+<li>all possible parse trees are generated.</li>
+<li>for each step in each parse tree (starting at leaves), an operation is chosen to execute the step.</li>
+<li>Each operation has an associated “cost”, measured in computational time and memory.</li>
+<li>query optimizer chooses the plan with the lowest “cost” given set memory, resources, etc.</li>
+<li>optimized query given to query evaluation engine, which carries out operations and produces result</li>
+<li>result eventually packed into network message, returned to client where database API unpacks message, builds data structure, and returns structure to the client application</li>
+</ul>
+</div>
+</div>
+<div id="ordering-results" class="section level2">
+<h2>Ordering Results</h2>
+<p><code>ORDER BY</code> must be explicitly specified to order returned tuple.</p>
+<ul>
+<li>sorting is expensive and common sorting algorithms require all data in memory
+<ul>
+<li>data usually too large – must be sorted in secondary storage</li>
+</ul></li>
+<li>sorting also used to find and eliminate duplicates</li>
+<li>sort can be applied to input relationships before a join operation, union, intersection, etc. to improve efficiency.
+<ul>
+<li>applicable indexes don’t require sorting, but for large tables sorting the tuples if preferably since accessing index requires more memory.</li>
+</ul></li>
+</ul>
+</div>
+<div id="access-operations" class="section level2">
+<h2>Access Operations</h2>
+<p>There is no single “best way” to carry out an operation – choice often depends on relation size, memory, data speed, indexes, concurrency, and cached results from prior operations</p>
+<p>Common operations:</p>
+<ul>
+<li><strong>use of index</strong>: common for selection and joins; uses an index to find tuples satisfying query conditions</li>
+<li><strong>iteration</strong>: linearly scanned and all tuples examined. generaly the slowest (O(n)).</li>
+<li><strong>partitioning</strong>: tuples are partitioned using internal sorting/hashing algorithms to find tuples meeting criteria
+<ul>
+<li>hashing has O(1) lookup but creation is time consuming.</li>
+<li>sorting is slow O(nlogn) but easy to partition</li>
+</ul></li>
+</ul>
+<p>Joins are usually the most expensive operations – worst case they require a nested loop algorithm, <span class="math inline">\(O(n^2)\)</span>.</p>
+</div>
+<div id="query-costing" class="section level2">
+<h2>Query Costing</h2>
+<p>The “cost” of a query is foundation for choosing query plan. There are many costs to consider:</p>
+<ul>
+<li>cost of accessing secondary storage, eg. disks</li>
+<li>cost of storing intermediate results in secondary storage, related access costs</li>
+<li>cost of computation eg. CPU use</li>
+<li>cost of storing results in main memory</li>
+<li>cost of transferring results from servers or remote database via networks</li>
+</ul>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

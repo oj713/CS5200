@@ -1,0 +1,74 @@
+---
+title: "Aggregation and `GROUP BY`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RSQLite)
+
+db <- dbConnect(SQLite(), "AssetDB.db")
+```
+
+## Aggregation Methods
+
+Aggregation methods summarize the values of a single result column. 
+
+* All methods except `count()` require the name of a column that is in a table in the FROM clause
+* Null values are ignored
+
+```{sql connection = db}
+select COUNT(*) as n, 
+       AVG(time) as Average, 
+       SUM(time) as Total
+  from Asset;
+```
+
+Common Aggregation Methods: 
+
+* `min`, `max`, `sum`, `avg`, `median, `stdev`, `variance`
+* `count(*)` and `count(col)` 
+  * `(*)` returns number of rows in table, and `(col)` returns number of non-null values in a column
+  * use `count(distinct col)` to count unique non-null values: 
+
+## Grouping 
+
+Groups are a form of aggregation where rows with common values are treated as one group of values
+
+* Aggregation methods will perform aggregations by group
+* Can group by multiple columns - `group by x, y`
+
+```{sql eval = FALSE}
+/* retrieve number of non-null instances of each value of actor_id */
+select actor_id, count(*)
+  from film_actor
+ group by actor_id;
+```
+
+* Use `HAVING` to restrict number of selected groups *after* groups are generated. 
+
+  * `having` operates on groups, while `where` only runs on ungrouped columns
+
+```{sql eval = FALSE}
+/* select only groups where the actor appears > 20 times */
+select actor_id, count(*)
+  from film_actor
+ group by actor_id
+having n > 20;
+```
+
+## Order of Execution 
+
+```{sql eval = FALSE}
+select fa.actor_id, f.rating, count(*) as n
+  from film_actor fa join film f on (fa.film_id = f.film_id)
+ where f.rating in ('PG', 'G')
+ group by fa.actor_id, f.rating
+   having n > 10
+  order by f.rating desc;
+```
+
+```{r include = FALSE}
+dbDisconnect(db)
+```

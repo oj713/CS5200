@@ -1,0 +1,11 @@
+"2","Error: table Module already exists
+"
+"2","In addition: "
+"2","Warning message:
+"
+"2","In result_fetch(res@ptr, n = n) :"
+"2","
+ "
+"2"," SQL statements must be issued with dbExecute() or dbSendStatement() instead of dbGetQuery() or dbSendQuery().
+"
+"2","Failed to execute SQL chunk"

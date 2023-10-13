@@ -1,0 +1,78 @@
+---
+title: "Data Mining"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Mining is used to find patterns in data and build models for forecasting, prediction, and classification. 
+
+* Requires a warehouse with large amounts of integrated, cleaned, and accessible data
+* Creates models:
+  * automates the process of generating and testing hypothesis
+  * **predictive** = "which applications are poor candidates?"
+    * training data, testing data, etc. 
+  * **descriptive** = "how much more likely are customers who do x to buy y?"
+  * **prescriptive**
+* Data mining is common term for extracting knowledge from large databases, while machine learning involves building predictive models -- some overlap!
+  * supervised machine learning - labeled data sets available 
+  * unsupervised ML - no pre-labeled data, focus is on discovering patterns
+  
+## Data Mining Process
+
+1. Define the problem
+2. Collecting, cleaning, and preparing the data (e.g. via data mart)
+3. Mining the data
+4. Validating the models
+5. Deploying the models
+6. Monitoring the models
+
+## Data Mining Methods
+
+* Predictive
+  * Classification and Regression
+* Descriptive
+  * Clustering
+    * finds "natural" grouping of instances given   unlabeled data
+  * Association rules
+    * discover relationships between variables
+    * e.g. which products to recommend
+    
+## Big Data Problems
+
+* Volume - huge amount of data
+* Velocity - new data at extreme frequency
+* Veracity - discrepancies/uncertainty
+* Value - data is only good if useful
+* Verity - different data types coming in 
+
+Massive amount of data growing at expoential rate in the word 
+
+### NoSQL Databases
+
+non-relational databases are better able to handle unstructured data over relational databases 
+
+* doesn't need to comply with ACID
+* prioritize flexibility and speed rather than transaction/concurrency management
+  * best for transaction and concurrency environments
+* can work with flexible, frequently changing data structures
+
+**Benefits**
+
+* can hold large amounts of unstructured information, allowing easy addition of new data
+* distribution/cloud support
+* often schema-less, amenable for agile/quick application development with rapidly changing requirements
+
+**Use Cases**: 
+
+* Data warehouses might be NoSQL, while data marts used for OLAP are often relational 
+* some NoSQL dbs suitable for OLAP (eg. MongoDB), but otherwise NoSQL best for desired high read throughput with unstructured data and schemas that can't be defined upfront
+
+
+
+
+

@@ -1,0 +1,5 @@
+"0","totals <- sqldf(""SELECT Invoiceid, SUM(ExtPrice) as totalAmount, COUNT(*) as numItems"
+"0","                   FROM rs"
+"0","                  GROUP BY InvoiceId"")"
+"0",""
+"0","total_invoice"

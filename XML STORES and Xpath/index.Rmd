@@ -1,0 +1,436 @@
+---
+title: "SQLite Overview"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[lesson link](http://artificium.us/lessons/80.xml/l-80-101-basic-xml/l-80-101.html#Introduction)
+
+**XML** is a markup language that uses elements and attributes to create a text file representing structured data. 
+
+  * common format across organization - useful to know for data analytics. 
+  * tags that create elements are defined by the creator of the file -- creates flexibility, but can hinder efficient exchange between systems
+  
+<br>
+
+# Data Sources
+
+Not all data in organization is stored within database managed by DBMS. Most data is instead stores in ad-hoc data files, spreadsheets, and on the web. 
+
+Web based data is contained in unstructured HTML files served by web servers, and some data is in structured/semistructured XML documents. 
+
+**Structured vs. Unstructured**: data in database tables are structured, enforced by DBMS and defined within constraints. Other data may not be structured, or may be semistructured into a tabular format. 
+
+### Web data & Scraping
+
+The web is a significant source of unstructured data: 
+
+* **Scraping**: the process of interpreting web data through inspection and retrieval. Converts unstructured HTML to useful structured format. 
+* while data is publicly available, many info providers forbit web scraping or hinder it
+
+<br>
+
+# Data Interchange
+
+Data must be interchanged and exported.
+
+* **CSV**: represent full tables or joins of tables. inherently tabular. 
+* **XML**: hierarchical table structures, enforcement of constraints through DTD/XSD. Queries through XPath.
+
+<br>
+
+# Structure of XML document
+
+XML consists of elements and attributes
+
+**Elements**: start tag with matching end tag, and contents enclosed between them. 
+
+* `<PHONE>555-666-7777</PHONE>`
+* not case sensitive
+* elements can be nested
+
+XML docs start with the preamble `<?xml version = "1.0"?>, followed by optional DTD/XSD, followed by root element + child elements. If it follows these rules it is **well-formed**. 
+
+Comments 
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<root>
+  ...
+  <!-- child elements -->
+</root>
+```
+
+## Elements vs. Attributes
+
+Elements may have associated **attributes**: providing information about the element via a name/value pair. 
+
+* attributes names must be unique w/in an element
+* `<publisher pID = "p1001">` -pID is an attribute
+* all attributes have data type "character"
+
+<br>
+
+# DTD #
+
+**DTD** (document type definition) defines the structure of an XML document, including elements and structures. It contains: 
+
+* *Elements*: tags, determining what is being structured
+* *Attributes*: extra info about element
+* *Entities*: shortcuts with special meaning
+* *PCDATA* parsed character data 
+* *CDATA* character data to not parse
+
+The DTD can be internal within the XML or in a separate file. It defines the grammar on the XML using Extended Bachus-Naur form (EBNF). 
+
+## Internal vs. External
+
+**Interal DTD** appears at the top of XML file, under declaration for XML. Won't appear in displayed code, but can be seen in text editor 
+
+```xml
+<?xml version="1.0"?>
+
+<!DOCTYPE writing [
+<!ELEMENT writing (title,author+,pubdate?)>
+<!ATTLIST writing type CDATA #REQUIRED>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT author (authorfirstname, authorlastname)>
+<!ELEMENT authorfirstname (#PCDATA)>
+<!ELEMENT authorlastname (#PCDATA)>
+<!ELEMENT pubdate (month,day,year)>
+<!ELEMENT month (#PCDATA)>
+<!ELEMENT day (#PCDATA)>
+<!ELEMENT year (#PCDATA)>
+]>
+
+<writing type = 'book'>
+  <title> The Joy of Data </title>
+  <author>
+    <authorfirstname>J.</authorfirstname>
+    <authorlastname>Datasmith</authorlastname>
+  </author>
+  <pubdate>
+    <month>12</month>
+    <day>18</day>
+    <year>2020</year>
+  </pubdate>
+</writing>
+```
+
+In this example, DTD shows that document stores writing, with space for book type, title, author, publication date
+
+**External DTD** is located in separate file, which is easier for sharing/standards. XML code references DTD in opening lines -- eg. `xml <!DOCTYPE writing SYSTEM "filename.dtd">
+
+```xml
+<!ELEMENT writing (title,author+,pubdate?)>
+<!ATTLIST writing type CDATA #REQUIRED>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT author (authorfirstname, authorlastname)>
+<!ELEMENT authorfirstname (#PCDATA)>
+<!ELEMENT authorlastname (#PCDATA)>
+<!ELEMENT pubdate (month,day,year)>
+<!ELEMENT month (#PCDATA)>
+<!ELEMENT day (#PCDATA)>
+<!ELEMENT year (#PCDATA)>
+```
+
+## DTD vs XML schema definition (XSD)
+
+Some XML docs instead reference an XML schema: 
+
+* XSD are written in XML and are more powerful than DTD -- more control over elements
+  * supports data types + name spaces
+* DTD and XSD allow declaration of elements and groups
+* DTD is less complex to write and useful in specific data work
+
+DTD defines structure of document, while XML schema is more descriptive. 
+
+<br>
+
+# DTD Syntax
+
+**Cardinality** adornments may follow an element. Default cardinality is 1 - eg. element must appear exactly one
+
+* `_*_` indicates cardinality of 0+
+* `+` indicates 1+
+* `?` indicates 0 or 1
+
+**An element with a value** is indicated with `<!ELEMENT foo (#PCDATA)>`. The value is between the opening and closing tag within XML, eg. `<foo> content </foo>`.
+
+## Sequence
+
+A **sequence** in XML is an element followed by another element. Consider the below DTD, which specifies a sequence of four child elements: 
+
+```xml
+<!DOCTYPE root [
+  <!ELEMENT root (Author*)>
+  <!ELEMENT Author (authorID, name, org, email)>
+  <!ELEMENT authorID (#PCDATA)>
+  <!ELEMENT name (#PCDATA)>
+  <!ELEMENT org (#PCDATA)>
+  <!ELEMENT email (#PCDATA)>
+]>
+```
+
+This specifies that root element is `<root>`, which contains zero or more `<Author>` elements. The parentheses specify child elements, all of which must appear exactly once. 
+
+An XML document conforming to the DTD would be: 
+
+```xml 
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+  <Author>
+    <authorID>3349</authorID>
+    <name>Charles Mercer</name>
+    <org>Oakton Partners</org>
+    <email>cm@oakton.com.ca</email>
+  </Author>
+  <Author>
+    <authorID>1132</authorID>
+    <name>Cindy Chen</name>
+    <org>Alpen Presse</org>
+    <email>cindy@alpen-presse.de</email>
+  </Author>
+</root>
+```
+
+Another example of a valid XML document is below. This is fine due to the zero optional cardinality of Author.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+</root>
+```
+
+## Mixed Content
+
+The *comma* (,) operator specifies a sequence in a DTD, while the *or* (|) operator specifies a choice. A DTD containing *foo | bar* means that either *foo* or *bar* must appear. 
+
+```xml
+<!ELEMENT Author (authorID, name, (org|email)*)>
+```
+
+In the example above, *author* may have zero or more of either *org* or *email* (including repeats and having both elements). 
+
+To ensure at least one of either, use `<!ELEMENT Author (authorID, name, org, email, (org|email)*)>`
+
+## Attributes
+
+Attributes are specified using `<!ATTLIST element attribute default>`. 
+
+* Attributes can have type *CDATA* (character data), *ID* (unique value), *IDREF* (reference to ID), or enumerated token. 
+* Constraints include *#REQUIRED*, *#FIXED* (finalized, value specified after keyword), *#IMPLIED* (optional)
+* for example, `<! ATTLIST Author authorID CDATA #REQUIRED>` specifies the mandatory *authorID* attribute for Author.
+
+## Enumerated tokens
+
+Enumerated tokens must be defined as an attribute, as no validation can occur for parsed character data. 
+
+Below, *LearningAsset* has enumerated attribute *difficulty*
+
+```xml
+<!DOCTYPE root [
+<!ELEMENT root (LearningAsset*)>
+<!ELEMENT LearningAsset (…)>
+<!ATTLIST LearningAsset difficulty 
+(easy|medium|difficult) "easy">
+...
+]>
+
+<root>
+  <LearningAsset difficulty = "medium">
+    ...
+  </LearningAsset>
+  <LearningAsset>
+    ...
+  </LearningAsset>
+
+  ...
+</root>
+```
+
+<br>
+
+# Best Practices
+
+It's best to group repeated elements under common parent element to ease parsing.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE note [
+<!ELEMENT note (recipients,from,heading,body)>
+<!ELEMENTS recipients (to+)>
+<!ELEMENT to (#PCDATA)>
+<!ELEMENT from (#PCDATA)>
+<!ELEMENT heading (#PCDATA)>
+<!ELEMENT body (#PCDATA)>
+]>
+
+<note>
+  <recipients>
+    <to>Topher</to>
+    <to>Pat</to>
+    <to>Maria</to>
+  </recipients>
+  <from>Chris</from>
+  <heading>Reminder</heading>
+  <body>
+   Meeting today at 12 in WVH166!
+  </body>
+</note>
+```
+
+<br>
+
+# Parsing an XML Document
+
+XML docs must be valid to be parsed easily by a program. *A XML doc can be well-formed without being valid!* In practice many XML files don't have a DTD, which makes parsing much more difficult. 
+
+## Approaches to Parsing
+
+There are two general approaches to parsing: DOM and SAX
+
+**DOM Parsing**: Document Object Model parsing where entire XML doc converted to in-memory tree data structure. 
+
+* entire tree in memory, can be traversed node-by-node or via XPath
+* no events triggered as entire XML parsed.
+* easier to use, but has more overhead
+
+**SAX**: Simple API for XML, only one element parsed and loaded into memory at a time using callback functions
+
+* preferred for very large XML documents, but difficult to parse as context is lost and XPath can't be used
+* events are triggered when XML is parsed
+  * eg. when strat tag encountered, triggers event to call processing function for that tag
+  
+<br>
+  
+# Mapping Ontologies to XML
+
+[Mapping Ontologies to XML](http://artificium.us/lessons/80.xml/l-80-106-ontology-to-xml-patterns/l-80-106.html)
+
+Using attributes versus elements is suggestive, not prescriptive. Most choices of using attributes vs. elements are equally valid, and made using common convention. 
+
+Primary keys, Foreign keys, and value sets should be represented by attributes; otherwise, they should be child elements. 
+
+## Key Attributes
+
+Keys should be represented as mandatory element attributes. 
+
+```xml
+<!DOCTYPE root [
+  <!ELEMENT root (Author*)>
+  <!ELEMENT Author
+      (name,org,email)>
+  <!ATTLIST Author authorID CDATA #REQUIRED>
+  <!ELEMENT name (#PCDATA)>
+  <!ELEMENT org (#PCDATA)>
+  <!ELEMENT email (#PCDATA)>
+]>
+```
+```xml
+<root>
+  <Author authorID="101">
+    <name>Chloe Parker</name>
+    <org>Northeastern University</org>
+    <email>c.parker@neu.edu</email>
+  </Author>
+  <Author authorID="102">
+    <name>Alison Chan</name>
+    <org>PWC Toronto</org>
+    <email>chan.alison@pwc.com</email>
+  </Author>
+  …
+</root>
+```
+## Unique Key Attributes
+
+The value of an attribute can be either *CDATA* or *ID* (a unique value starting with a letter). 
+
+* In XML, the *ID* value must be unique within the entire document or data store, not just the table. Ideally use *ID* when possible, but not necessarily realistic for imported data tables with duplicate keys. * The *ID* value must start with a letter - could use table name + primary key 
+
+## Booleans 
+
+Use empty elements to represent boolean values.
+
+```xml
+<!DOCTYPE root [
+  <!ELEMENT root (Author*)>
+  <!ELEMENT Author
+      (name,org,email,isDeployed?)>
+  <!ATTLIST Author authorID ID #REQUIRED>
+  <!ELEMENT name (#PCDATA)>
+  <!ELEMENT org (#PCDATA)>
+  <!ELEMENT email (#PCDATA)>
+  <!ELEMENT isDeployed EMPTY>
+]>
+```
+```xml
+<root>
+  <Author authorID="i101">
+    <name>Chloe Parker</name>
+    <org>Northeastern University</org>
+    <email>c.parker@neu.edu</email>
+  </Author>
+  < Author authorID ="i102">
+    <name>Alison Chan</name>
+    <org>PWC Toronto</org>
+    <email>chan.alison@pwc.com</email>
+    <isDeployed />
+  </Author>
+  …
+</root>
+```
+
+## One to One Linked
+
+Use *IDREF* to implement a foreign key. Values used in *IDREF* are used to ensure they point to a valid *ID* in the document at the time the XML document is read. It must have the constraint #REQUIRED or #IMPLIED. 
+
+```xml
+<!DOCTYPE root [
+  <!ELEMENT root (Lesson*, Memo*)>
+  <!ELEMENT Lesson
+      (timeToComplete,title)>
+  <!ATTLIST Lesson lessonID ID #REQUIRED>
+  <!ELEMENT timeToComplete (#PCDATA)>
+  <!ELEMENT title (#PCDATA)>
+  <!ELEMENT Memo (contents,attachment*)>
+  <!ELEMENT contents (#PCDATA)>
+  <!ELEMENT attachment (#PCDATA)>
+  <!ATTLIST Memo lessonIDFK IDREF #REQUIRED>
+]>
+```
+```xml
+<root>
+ <Lesson lessonID="i293">
+   ...
+ </Lesson>
+ <Lesson lessonID="i482">
+   ...
+ </Lesson>
+ ...
+ <Memo lessonIDFK = "i293">
+   <contents>contents of memo</contents>
+   <attachment>http://foo.bar.com/att1.docx</attachment>
+   <attachment>http://foo.bar.com/att2.docx</attachment>
+  </Memo>
+  <Memo lessonIDFK = "i482">
+    <contents>contents of memo</contents>
+    <attachment>http://foo.bar.com/att1.docx</attachment>
+    <attachment>http://foo.bar.com/att2.docx</attachment>
+  </Memo>
+ ...
+</root>
+```
+
+
+
+

@@ -1,0 +1,2 @@
+"0","CREATE INDEX custLN 
+    ON customers(LastName);"

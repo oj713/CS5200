@@ -1,0 +1,8 @@
+"0","library(XML)"
+"0","library(stringr)"
+"0",""
+"0","plants <- xmlParse(""files/plants.xml"")"
+"0",""
+"0","findp <- function(xpath_expr) {"
+"0","  xpathSApply(plants, xpath_expr) |> head(3)"
+"0","}"

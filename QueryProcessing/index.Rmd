@@ -1,0 +1,122 @@
+---
+title: "Indexing Methods"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Query performance depends on table organization
+
+* unsorted: O(n)
+* sorted: O(log(n))
+* hash: O(1)
+
+Tables can also be organized multiple ways -- eg. sorting a phone book by name or phone number. 
+
+**Index**
+
+* smaller, easier to maintain *copy* of the original table
+* file with index values and **record identifiers** (RIDs) referencing original records
+* *unique* keyword identifies index as referring to a key
+
+## Creating Indexes
+
+Use `CREATE INDEX` to create an index. 
+
+```{sql eval = FALSE}
+-- create index <name> on <table>(<field>); 
+create index major_idx on student(majorId);
+```
+
+Can create additional indexes on the same table if expecting frequent queries on other fields
+
+```{sql eval = FALSE}
+-- note UNIQUE keyword
+create unique index sid_idx on student(sid);
+```
+
+### Unique vs. Non-Unique Indexes
+
+**Unique Index**
+
+* Queries on UNIQUE indexes refer to a single record
+* Will always improve performance!
+
+*Example*: find student with SId 8. 
+
+* Use `sid_idx` index to find index record whose sid-value is 8 (tree search, logarithmic)
+* obtain value of RID field
+* move directly to student record with RID
+
+**Non-Unique Index**
+
+* Queries on NON UNIQUE indexes may refer to several records
+* higher proportion of referenced results will lower performance
+  * if there are more records matching the index than there are disk blocks, indexing will be less efficient than linear search!
+
+## B+ Trees
+
+B+ Trees will run in O(log(n)) time, as opposed to full scan/linear search. 
+
+* always balanced
+* may have more than 2 children per node
+  * depth of leaves are always the about same
+  * height of tree is balanced with number of children
+* A skewed, unbalanced tree will have lower performance
+  
+**Insertion**
+
+* Perform to search to find where element fits
+* Add tree element
+* If overloads bottom node, split the node and carry change up to top 
+
+## Efficiency
+
+Indexes can be more efficient, but not always. Goal is not always to minimize number of comparisons. 
+
+* Most expensive operation is to read/write to the database
+* instead of reading/writing individual records, databases r/w in blocks
+* **Goal: optimize I/O cost**
+
+**Disk Block**: A block of information within the database, has a maximum capacity. At minimum, one disk block will be read by the database
+
+**Example 1**: Find student with SId 8. Suppose each disk block stores 10 student records, and there are 40,000 records total. 
+
+* non-indexed I/O cost: 40,000/10 = 4000 reads, *worst case*
+* indexed I/O cost: couple of reads to find index and RID, one more read retrieves record from student using RID. 
+* 1000+ times faster with indexes!!
+
+**Example 2**: Find the SIds of students with MajorID 20. Assume that there are 40 majors, and ~1000 records/major.
+
+* *non-indexed:* linear search, 40,000/10 = 4000 disk reads. all 10 records in each block are compared
+* *with indexes*
+  * use major_idx index to find index records where majorid is 20. for each record: obtain RID field, move directly to student record, add sid value of record. 
+  * index and RID still small, but must repeat 1000x for each student in department. only 4x faster!
+  
+## Composite Indexes
+
+If most select queries use both indexes, consider a composite index
+
+* column order defines sort priority order
+  * order doesn't matter if both indexes are in a query, but if a query asks for only one, it must be first! otherwise useless 
+* ASC or DESC next to column define sort order
+* easier to maintain a composite index than a separate index for each attribute
+
+```{sql eval = FALSE}
+create index model_year on cars (model, year)
+```
+
+## Cost of Indexing
+
+Indices are costly! 
+
+* Memory
+  * indexing every attribute might take more data than the original. 
+  * isn't memory cheap? Not in enterprise databases!
+* Insertion performance
+  * in transactional (not read-only) databases, additional indices will slow down insertions (require re-indicing!)
+  
+
+

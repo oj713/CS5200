@@ -1,0 +1,245 @@
+---
+title: "Joins"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Joins are essential to queries involving data that spans multiple tables. Note that the **cross join** is not covered. 
+
+## Sample Database
+
+```{r}
+library(RSQLite)
+db <- dbConnect(SQLite(), ":memory:")
+```
+```{sql connection = db}
+/* foreign key is off to allow dangling references */
+PRAGMA foreign_keys = OFF
+```
+
+```{sql connection = db}
+create table office (
+ oid integer primary key,
+ num text
+);
+```
+```{sql connection = db}
+create table empl (
+ eid integer primary key,
+ name text,
+ oid integer,
+ foreign key (oid) references office(oid)
+);
+```
+
+Note that some employees do not have an office, and vice versa. 
+
+```{sql connection = db}
+insert into office values 
+ (10,"NI 132F"),
+ (20,"WVH 310A"),
+ (30,"RY 611"),
+ (40,"CH 103"),
+ (50,"106A");
+```
+```{sql connection = db}
+insert into empl values 
+ (601,"Jeff Goldblum",10),
+ (602,"Ann Hathaway",20),
+ (603,"Michael Keaton",30),
+ (604,"Jennifer Hudson",NULL),
+ (605,"Mark Wahlberg",44),
+ (609,"Helen Miren", 50);
+```
+
+## Cartesian Product
+
+When query contains 2+ tables in *FROM*, SQL produces Cartesian Product of the tables, i.e. all combinations of rows 
+
+* note that foreign key and primary key only match on some rows 
+
+```{sql connection = db}
+select * from empl, office;
+```
+
+<br>
+
+## Inner Join
+
+Inner join is the most common form of join - joins rows of two tables such that PK in one table matches FK in other.
+
+* **Standard WHERE Clause with PK/FK Matching**
+
+  Simple and common, but not as obvious as other methods.
+  
+  ```{sql connection = db}
+  select e.name as EmployeeName, o.num as OfficeNum
+    from empl as e, office as o
+   where e.oid = o.oid;
+  ```
+  
+* **Inner Join Syntax**
+
+  Preferred method, clearly expresses join and separates join clause from other selection criteria. Note that `inner` keyword is optional. 
+  
+  ```{sql connection = db}
+  select *
+    from empl e inner join office o on (e.oid = o.oid);
+  ```
+  
+* **Natural Join**
+  
+  A natural join is an inner join where the database matches tables based on common column names. 
+  
+  * This won't work as expected if any columns other than the PK/FK columns have matching names. 
+  
+  ```{sql connection = db}
+  select * from empl natural join office;
+  ```
+  
+## Joining Multiple tables 
+
+Joining multiple tables is achieved by sequentially joining pairs of tables. All tables must be connected by some path to any other table. 
+
+```{sql connection=db}
+create table campus (
+ cid text primary key,
+ name text not null,
+ city text not null,
+ state text not null,
+ country text not null
+);
+```
+```{sql connection=db}
+alter table office
+  add column cid text;
+```
+```{sql connection=db}
+insert into campus values 
+ ('BOS', 'Main Campus Boston', 'Boston', 'MA', 'USA'),
+ ('SV', 'Silicon Valley', 'San Jose', 'CA', 'USA'),
+ ('TOR', 'Toronto', 'Toronto', 'ON', 'Canada'),
+ ('SEA', 'Seattle', 'Seattle', 'WA', 'USA');
+```
+```{sql connection=db}
+update office
+   set cid = 'BOS'
+ where oid IN (10, 20, 30, 40);
+```
+```{sql connection=db}
+update office
+   set cid = 'SEA'
+ where oid IN (50);
+```
+
+Now, to join, we can use WHERE clause or a join statement like above. 
+
+```{sql eval = FALSE}
+/* not evaluated */
+select e.name, o.num, c.name
+  from empl e, office o, campus c
+ where e.oid = o.oid and o.cid = c.cid;
+```
+```{sql connection = db}
+select e.name, o.num, c.name
+  from empl e join office o on (e.oid = o.oid)
+              join campus c on (o.cid = c.cid);
+```
+
+## Outer Joins 
+
+Outer join has three different types, each of which add a specified set of unmatched rows. 
+
+* **Left Outer Join**
+  
+  Left outer joins select all common rows plus all unmatched rows from the left table in join specification. Unmatched rows have missing information populated with NA. 
+  
+  ```{sql connection = db}
+  select *
+    from empl e left join office o on (e.oid = o.oid)
+  ```
+  
+  Note that this can be used to find unmatched rows and missing fks, which usually can't happen but might with low-quality imported data. 
+  
+  ```{sql connection = db}
+  /* find missing FK's and rows with missing offices */
+  select *
+    from empl e left join office o on (e.oid = o.oid)
+  except
+  select *
+    from empl e inner join office o on (e.oid = o.oid);
+  ```
+  ```{sql connection = db}
+  /* find dangling references */
+  select e.name, e.oid
+    from empl e left join office o on (e.oid = o.oid)
+  except
+  select e.name, e.oid
+    from empl e inner join office o on (e.oid = o.oid)
+  except
+  select e.name, e.oid
+    from empl e
+   where e.oid is null;
+  ```
+
+* **Right Outer Join**
+
+  This is the same as a left outer join except that unmatched rows come from table on the right. This isn't explicitly supported, so just reverse a left join. 
+  
+  ```{sql connection = db}
+  select * from office o left join empl e on (e.oid = o.oid);
+  ```
+
+* **Right Outer Join**
+
+  Full outer join is the union of a left and right outer join, showing all matching rows as well as unmatched rows from the right and left table. 
+  
+  * For this to work, column order must be explicitly specified: `*` doesn't work as queries return columns in different orders. 
+
+  ```{sql connection = db}
+  select e.name, o.num
+    from office o left join empl e on (e.oid = o.oid)
+  union
+  select e.name, o.num
+    from empl e left join office o on (e.oid = o.oid)
+  ```
+
+## Anti-Join
+
+In an anti-join we're looking to find all rows that are in one table, but not in the other. To do this, do a left join and then filter out anything where the FK is NULL. 
+
+```{sql connection = db}
+select o.oid, o.cid
+  from office as o
+  left join empl as e on (o.oid = e.oid)
+ where e.oid = null;
+```
+
+## Self Joins
+
+self joins can be useful on associative join tables to determine membership to multiple groups. 
+
+```{sql eval = FALSE}
+/* determine which students were assigned to both Teams A and B */
+select * 
+  from StudentTeamAssignment a1
+  join StudentTeamAssignment a2 on a1.StudentFK = a2.StudentFK
+ where a1.TeamFK = 'A' AND a2.TeamFK = 'B';
+```
+
+```{r include = FALSE}
+dbDisconnect(db)
+```
+
+
+
+
+
+
+
+
+
+

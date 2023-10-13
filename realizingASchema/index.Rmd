@@ -1,0 +1,107 @@
+---
+title: "SQLite Overview"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Client/Server databases**, aka server based: 
+
+* applications first connect to TCP/IP port, use port to send SQL database requests and receive table results
+* all database processing occurs in separate process, most likely on shared server computer 
+
+<br>
+
+## SQLite ##
+
+SQLite is a relational database that is purposefully lightweight and ideal for learning and for small applications not requiring concurrent access. 
+
+* self contained
+* serverless 
+* zero-configuration
+* transactional 
+
+**Serverless**: 
+
+* database contained within single file on client application storage system
+* database is single user, not shared
+* SQL processing occur within compiled SQLite library 
+
+## Connecting to SQLite ##
+
+We can access the SQLite database through the RSQLite package.
+
+```{r}
+library(RSQLite)
+
+# pass in name for database -- if doesn't already exist, new database is created 
+dbcon <- dbConnect(RSQLite::SQLite(), "myDB.db")
+
+dbcon
+```
+
+After establishing connection, can access database using `RSQLite` methods, eg. `dbExecute()`, `dbGetQuery()`, `dbSendStatement()`. See other pages for more information.
+
+
+### Working with SQL in RMarkdown ###
+
+SQL operations are done within a `{sql connection=dbcon}` chunk. Note the `connection` argument. 
+
+* R functions also exist for these statements, but `{sql}` is simpler. 
+* Semicolons are optional in an {sql} chunk, but good coding practice to include
+* commands are case insensitive; variables are not
+  * prefer uppercase
+* **Only include one SQL command per chunk.**
+
+```{sql connection=dbcon}
+create table lessons (
+  lname text not null,
+  llength integer not null
+)
+```
+```{sql connection=dbcon}
+insert into lessons (lname, llength) values
+  ('Intro C++', 90), 
+  ('Intro Java', 90),
+  ('SQL Joins', 60);
+```
+```{sql connection=dbcon} 
+select * from lessons;
+```
+
+```{r, include = FALSE}
+dbDisconnect(dbcon)
+
+file.remove("myDB.db")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

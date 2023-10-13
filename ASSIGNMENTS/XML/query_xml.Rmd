@@ -1,0 +1,86 @@
+---
+title: "DO: Query XML"
+author: "Omi Johnson"
+date: "2022-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(XML)
+
+# reading in the XML
+xmlDOM <- xmlParse("Books-v4.xml")
+
+# helper function that runs an XPath expression
+# ... allows for a large xpath expression to be broken across multiple lines
+xpath_help <- function(...) {
+  xpathSApply(xmlDOM, paste0(...))
+}
+```
+
+## Part 1
+
+What are the titles of all books selling for more than $50? List the titles.
+
+```{r}
+xpath_help("//book[price > 50]/title/text()")
+```
+Who is the author of the book with the title "Oberon's Revenge"?
+
+```{r}
+xpath_help('//book[title = "Oberon\'s Revenge"]/author/text()')
+```
+
+What are the titles of the books that sell for the lowest price? (Use the min aggregation function)
+
+```{r}
+xpath_help('//book[price = min(//book/price)]/title/text()')
+```
+
+List the title and prices of all books in the "Computer" genre.
+
+* If the R `XML` package supported xpath 2.0, I would use `//book[genre = "Computer"]/concat(title, ",", price)`
+
+```{r}
+xpath_help('//book[genre = "Computer"]/*[self::title or self::price]/text()')
+```
+
+How many books cost more than $50? (Use the count aggregation function)
+
+```{r}
+xpath_help("count(//book[price > 50])")
+```
+
+## Question 2
+
+**How many books are in each genre and what is the average price for the books in each genre? List the genre, number of books, and average price.**
+
+```{r}
+# retrieving list of all genres
+genres <- xpath_help("//book/genre/text()") |> 
+  sapply(function(g) as(g, "character")) |>
+  unique()
+
+get_genre <- function(genre) {
+  # retrieving number of books
+  numBooks <- xpath_help("count(//book[genre = '", genre, "'])")
+  # retrieving average price
+  avgPrice <- xpath_help("//book[genre = '", genre, "']/price/text()") |>
+    sapply(function(p) as(p, "numeric")) |>
+    mean()
+  
+  list(genre, numBooks, avgPrice)
+}
+
+
+do.call(rbind.data.frame, lapply(genres, get_genre)) |>
+  setNames(c("Genre", "Number of Books", "Average Price"))
+```
+
+
+
+

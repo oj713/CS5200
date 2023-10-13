@@ -1,0 +1,24 @@
+---
+title: "Build XML Structure"
+author: "Omi Johnson"
+date: "2022-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Read the XML into R (with validation) and then use XPath to find the total number of visits for some page (pick one from your sample instances). Print the result to show that your XML was correctly encoded, validates, and can be processed.**
+
+```{r}
+library(XML)
+
+# reading in the XML
+xmlDOM <- xmlParse("visits.xml", validate = T)
+```
+
+```{r}
+# finding number of visits for page1
+xpathSApply(xmlDOM, "count(//log/Visit[@pid = 'page1'])")
+```

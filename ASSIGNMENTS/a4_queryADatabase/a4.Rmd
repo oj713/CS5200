@@ -1,0 +1,167 @@
+---
+title: "Query a Database"
+output: 
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Omi Johnson
+
+<br>
+
+```{r}
+library(RSQLite)
+db <- dbConnect(SQLite(), "MediaDB.db")
+```
+
+## Queries
+
+**(5 pts) What are the last name, city, and state of all customers who made at least one purchase and live in Brazil? Do not list duplicates.**
+
+*Simple Approach *
+
+```{sql eval = FALSE}
+SELECT LastName, City, State
+  FROM customers
+ WHERE LOWER(Country) LIKE 'brazil'
+   AND CustomerID IN (SELECT DISTINCT CustomerID FROM invoices);
+```
+
+*View Approach*
+
+* I decided to create a view for all customers who have made a purchase, since this information is also desired for two other queries. 
+
+```{sql connection = db}
+CREATE VIEW IF NOT EXISTS purchasing_customers AS 
+SELECT *
+  FROM customers
+ WHERE CustomerId IN (SELECT DISTINCT CustomerId
+                        FROM invoices);
+```
+
+```{sql connection = db}
+SELECT LastName, City, State
+  FROM purchasing_customers
+ WHERE LOWER(Country) LIKE '%brazil%'
+```
+
+<br>
+
+**(5 pts) What are the titles of each album and the number of tracks on each album? **
+
+```{sql connection = db}
+SELECT a.Title, COUNT(DISTINCT t.TrackId) as num_tracks
+  FROM ALBUMS a LEFT JOIN tracks t ON (a.AlbumId = t.AlbumId)
+ GROUP BY a.AlbumID
+```
+
+<br>
+
+**(5 pts) List the number of tracks by media type.**
+
+```{sql connection = db}
+SELECT m.Name, COUNT(DISTINCT t.TrackId) as num_tracks 
+  FROM media_types m LEFT JOIN tracks t ON (t.MediaTypeId = m.MediaTypeId)
+ GROUP BY m.MediaTypeId
+```
+
+<br>
+
+**(10 pts) What is the average age of the employees? Use SQL to round the result to one digit of precision, e.g., 23.4.**
+
+```{sql connection = db}
+/* dividing by 365.25 to account for leap years */
+SELECT ROUND(AVG((JULIANDAY('now') - JULIANDAY(BirthDate))/365.25), 1)
+    AS average_age
+  FROM employees
+```
+
+<br>
+
+**(10 pts) What are the total number of unique customers for each US state (e.g., MA, CT, etc.), ordered alphabetically by state, who made at least one purchase (i.e., do not consider customers who never made a purchase)?**
+
+Note: Unique customers are ensured because I am selecting from the `customers` table, where each customer is unique. 
+
+```{sql connection = db}
+SELECT State, Count(*) as distinct_customers
+  FROM purchasing_customers
+ WHERE Country LIKE 'USA'
+ GROUP BY State
+ ORDER BY State
+```
+
+<br>
+
+**(10 pts) How many customers never made a purchase, i.e., they appear in the customers table but not in the invoices table.**
+
+```{sql connection = db}
+SELECT COUNT(*) AS num_customers_nopurchase
+  FROM customers
+ WHERE CustomerID NOT IN (SELECT CustomerID FROM purchasing_customers)
+``` 
+
+<br>
+
+**(10 pts) How many albums contain the substring "symphony" in the album title?**
+
+```{sql connection = db}
+SELECT Count(*) AS num_symphony_albums
+  FROM albums
+ WHERE LOWER(Title) LIKE '%symphony%'
+```
+
+<br>
+
+**(15 pts) What is the total "time" of all tracks per artist, i.e., add up the "Milliseconds" column in tracks? Display the artist's name and the time in hours rounded to two decimals. Only consider artists who published at least one track.**
+
+* Creating a view containing merged information on artists and select track attributes, as this information is desired for the rest of the questions
+
+```{sql connection = db}
+CREATE VIEW IF NOT EXISTS artists_tracks AS
+SELECT a.*, t.trackId, t.GenreId, t.Milliseconds   
+  FROM (artists a LEFT JOIN albums al ON (a.ArtistId = al.ArtistId))
+                  LEFT JOIN tracks t ON (al.AlbumId = t.AlbumId)
+```
+
+```{sql connection = db}
+SELECT Name, ROUND(SUM(Milliseconds)/3600000.00, 2) AS summed_time_hrs
+  FROM artists_tracks
+ WHERE TrackId NOT NULL
+ GROUP BY ArtistId
+```
+
+<br>
+
+**(15 pts) Which artist(s) published the least number of tracks, regardless of type and format? List the artist(s) name(s). Do not list duplicates.**
+
+```{sql connection = db}
+WITH track_counts AS (
+  SELECT Name, Count(DISTINCT TrackId) AS summed_count
+    FROM artists_tracks
+   GROUP BY ArtistId
+) 
+SELECT Name
+  FROM track_counts
+ WHERE summed_count = (SELECT MIN(summed_count) 
+                         FROM track_counts)
+```
+
+<br>
+
+**(15 pts) Which artists have composed tracks in more than three different genres? List the artists name and the number of distinct genres they have compositions in. Do not list duplicates.**
+
+```{sql connection = db}
+SELECT Name, COUNT(DISTINCT GenreId) AS genre_count
+  FROM artists_tracks
+ GROUP BY ArtistId
+HAVING Count(DISTINCT GenreId) > 3
+```
+
+## Disconnect
+
+```{r}
+dbDisconnect(db)
+```

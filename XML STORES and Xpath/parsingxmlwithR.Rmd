@@ -1,0 +1,271 @@
+---
+title: "Parsing XML with R"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Parse XML with R lesson ](http://artificium.us/lessons/06.r/l-6-114-parse-xml-r-primer/l-6-114.html)
+[Reading XML into SQLite](http://artificium.us/lessons/06.r/l-6-328-xml-to-reldb-sqlite/l-6-328.html)
+
+Many of the concepts here extend to other programming languages. 
+
+```{r}
+library(XML) # there are other options!
+library(stringr)
+```
+
+# Loading an XML File
+
+XML files can be loaded and parsed as both a local file or from a URL. 
+
+```{r eval = FALSE}
+xmlFile <- "BookCatalog.xml"
+xmlURL <- "http://artificium.us/lessons/06.r/l-6-114-parse-xml-r-primer/BookCatalog.xml"
+
+domB <- xmlParse(xmlFile)
+```
+
+`xmlParse()` returns a reference to an internal tree of nodes representing the DOM for the XML.
+
+  * `xmlTreeParse()` also returns a DOM, but represented as an R data structure rather than C data structure. It allows access using the $ operator, but in practice `xmlParse()` is used due to its better efficiency. 
+
+## Validation
+
+`xmlParse()` doesn't validate the file against a DTD or XSD - it only checks if the file is well-formed. To ensure that te SML conforms to a DTD, use `validate = T`. 
+
+Other parameters include `trim` (strip whitespace), `getDTD` (should DTD be returned?), and `isURL`. 
+
+```{r eval = FALSE}
+domP <- xmlParse("pagevisits.xml", validate = T)
+```
+
+<br>
+
+# Extracting Elements
+
+There are two common ways to extract element values -- through indexing the DOM and through XPath. 
+
+We use an example XML: 
+
+```xml
+<catalog>
+   <book id="bk101" edition="3">
+      <author>
+        <surname>Gambardella</surname>
+        <given>Matthew</given>
+      </author>
+      <title>XML Developer's Guide</title>
+      <outofprint />
+      <price currency="R$">349</price>
+   </book>
+   <book id="bk102" edition="1">
+      <author>
+        <surname>Ralls</surname>
+        <given>Kim</given></author>
+      <title>Midnight Rain</title>
+      <price currency="US$">5.95</price>
+   </book>
+</catalog>
+```
+
+We begin by loading the XML. 
+
+```{r}
+xmlDoc <- xmlParse("files/SimpleXML.xml", validate = F)
+```
+
+## Indexed Access
+
+To access elements, we first acquire the root element of the DOM tree. 
+
+```{r}
+root <- xmlRoot(xmlDoc)
+```
+
+Accessing the *ith* child node underneath the root can be done using the list access operator `[[i]]`. This can be continued all the way down a tree. 
+
+```{r}
+print(root[[1]])
+
+aNode <- root[[2]][[1]][[2]]
+
+print(aNode)
+```
+
+To retrieve the value of a node, use `xmlValue()`
+
+```{r}
+xmlValue(aNode) |> print()
+```
+
+One advantage of this model is that the tree can be processed in a loop.
+
+```{r}
+# extracting all author surnames
+n <- xmlSize(root)
+
+names <- c(length = n)
+
+for (i in 1:n) {
+  names[i] <- xmlValue(root[[i]][[1]][[1]])
+}
+
+cat(names)
+```
+
+### Optional Elements
+
+Optional elements can be tricky when using indexed access. One technique to handle this is by checking the name of a node using `xmlName()`. 
+
+```{r}
+node <- xmlName(root[[1]][[3]]) 
+ifelse (node == "outofprint", "Out of Print", "Printing")
+```
+
+## Storing XML in Data Frame
+
+Storing XML into a data frame is a common strategy when converting data from XML to a tabular format or saving to relational database
+
+```{r}
+# number of <book> nodes
+n <- xmlSize(root)
+
+# empty data frame
+df <- data.frame(title = as.character(n),
+                 price = as.numeric(n))
+
+for (i in 1:n)
+{
+  title <- xmlValue(root[[i]][[2]])
+  node <- xmlName(root[[i]][[3]])
+  price.node <- ifelse(node == "outofprint", 
+                       4, 3)
+  
+  price <- xmlValue(root[[i]][[price.node]])
+  price.value <- as.numeric(price)
+  
+  # add to data frame
+  df[i,"title"] <- title
+  df[i,"price"] <- price.value
+}
+
+head(df,3)
+```
+
+### Extracting Attributes
+
+Attributes are extracted using `xmlAttrs()`, which accepts a method and returns a list of all attributes. 
+
+```{r}
+xmlAttrs(root[[1]])
+```
+
+To extract a specific attribute, use `xmlGetAttr()`. 
+
+```{r}
+xmlGetAttr(root[[1]], "edition")
+```
+
+
+## XPath
+
+[XPath in R](http://artificium.us/lessons/06.r/l-6-324-parse-xml-dom/l-6-324.html)
+
+[Data retrieval with XPath Examples](http://artificium.us/lessons/06.r/l-6-303-xpath-in-r/l-6-303.html)
+
+[XPath functions](https://northeastern.instructure.com/courses/123281/pages/30-min-read-a-primer-on-xpath-functions?module_item_id=7536375)
+
+XPath expressions can access elements and attributes in a more elegant, simple way. 
+
+`xpathSApply()` applies an XPath expression and returns a list of all nodes matching that expression.
+
+* there is also `xpathApply()`, but this is not preferred as it returns a list rather than a simplified vector
+
+```{r}
+xpathSApply(xmlDoc, 
+            "//book/title")
+```
+
+To retrieve values of elements, add `xmlValue()` as a parameter. We don't need to add xmlValue when retrieving attribute values. 
+
+```{r}
+xpathSApply(xmlDoc, 
+            "//book/title", 
+            xmlValue)
+```
+
+### Missing Elements
+
+Check for optional elements using XPath by finding the length of the returned list.
+
+```{r}
+xpathSApply(xmlDoc, "//book/genre", xmlValue) |>
+  length()
+```
+
+## XPath with Indexed Access
+
+If there are multiple of an element within a parent, or none at all, combinations of XPath and indexed access may be necessary. 
+
+Consider a more complex XML with multiple prices, where we only what to extract US prices. Here's an example of a node: 
+
+```xml
+<catalog>
+   <book id="bk101" edition="3">
+      <author>
+        <surname>Gambardella</surname>
+        <given>Matthew</given>
+      </author>
+      <title>XML Developer's Guide</title>
+      <outofprint />
+      <price currency="R$">349</price>
+      <price currency="US$">29.95</price>
+      <price currency="€">34.00</price>
+   </book>
+   ...
+ </catalog>
+```
+
+There are multiple approaches to solve this, but one is below that affords more flexibility than pure XPath. 
+
+```{r}
+xmlDoc <- xmlParse("files/SimpleXML-2.xml")
+
+n <- xmlSize(root)
+
+# get all <book> nodes from the XML
+books <- xpathSApply(xmlDoc, "//book")
+
+# iterate over the <book> nodes
+for (i in 1:n) {
+  # get the i-th book node
+  aBook <- books[[i]]
+  
+  # use XPath to extract the <price> child elements
+  xpathSApply(aBook,
+              "price[./@currency='US$']",
+              xmlValue)
+}
+```
+
+# Loading simple XML into a dataframe
+
+[lesson link](http://artificium.us/lessons/06.r/l-6-323-load-xml-xmlToDataFrame/l-6-323.html)
+
+Simple row/column XML files can be loaded directly into a dataframe using `xmlToDataFrame()`. It's convenient to load simple XML files that are often the result of data exports. 
+
+```{r eval = FALSE}
+df <- xmlToDataFrame(filename, 
+                     stringsAsFactors = F)
+```
+
+Note that all values will be loaded as text and may require explicit numeric conversion. 
+
+For more complex XML documents, a combination of XPath and DOM must be used. 
+
+

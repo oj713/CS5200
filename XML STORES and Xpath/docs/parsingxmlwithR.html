@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Parsing XML with R</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">XML and Xpath</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">XML and DTD basics</a>
+</li>
+<li>
+  <a href="parsingxmlwithR.html">Parsing XML with R</a>
+</li>
+<li>
+  <a href="quiz_stuff.html">XPath Examples</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Parsing XML with R</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#loading-an-xml-file" id="toc-loading-an-xml-file">Loading
+an XML File</a>
+<ul>
+<li><a href="#validation" id="toc-validation">Validation</a></li>
+</ul></li>
+<li><a href="#extracting-elements"
+id="toc-extracting-elements">Extracting Elements</a>
+<ul>
+<li><a href="#indexed-access" id="toc-indexed-access">Indexed Access</a>
+<ul>
+<li><a href="#optional-elements" id="toc-optional-elements">Optional
+Elements</a></li>
+</ul></li>
+<li><a href="#storing-xml-in-data-frame"
+id="toc-storing-xml-in-data-frame">Storing XML in Data Frame</a>
+<ul>
+<li><a href="#extracting-attributes"
+id="toc-extracting-attributes">Extracting Attributes</a></li>
+</ul></li>
+<li><a href="#xpath" id="toc-xpath">XPath</a>
+<ul>
+<li><a href="#missing-elements" id="toc-missing-elements">Missing
+Elements</a></li>
+</ul></li>
+<li><a href="#xpath-with-indexed-access"
+id="toc-xpath-with-indexed-access">XPath with Indexed Access</a></li>
+</ul></li>
+<li><a href="#loading-simple-xml-into-a-dataframe"
+id="toc-loading-simple-xml-into-a-dataframe">Loading simple XML into a
+dataframe</a></li>
+</ul>
+</div>
+
+<p><a
+href="http://artificium.us/lessons/06.r/l-6-114-parse-xml-r-primer/l-6-114.html">Parse
+XML with R lesson</a> <a
+href="http://artificium.us/lessons/06.r/l-6-328-xml-to-reldb-sqlite/l-6-328.html">Reading
+XML into SQLite</a></p>
+<p>Many of the concepts here extend to other programming languages.</p>
+<pre class="r"><code>library(XML) # there are other options!
+library(stringr)</code></pre>
+<div id="loading-an-xml-file" class="section level1">
+<h1>Loading an XML File</h1>
+<p>XML files can be loaded and parsed as both a local file or from a
+URL.</p>
+<pre class="r"><code>xmlFile &lt;- &quot;BookCatalog.xml&quot;
+xmlURL &lt;- &quot;http://artificium.us/lessons/06.r/l-6-114-parse-xml-r-primer/BookCatalog.xml&quot;
+
+domB &lt;- xmlParse(xmlFile)</code></pre>
+<p><code>xmlParse()</code> returns a reference to an internal tree of
+nodes representing the DOM for the XML.</p>
+<ul>
+<li><code>xmlTreeParse()</code> also returns a DOM, but represented as
+an R data structure rather than C data structure. It allows access using
+the $ operator, but in practice <code>xmlParse()</code> is used due to
+its better efficiency.</li>
+</ul>
+<div id="validation" class="section level2">
+<h2>Validation</h2>
+<p><code>xmlParse()</code> doesn’t validate the file against a DTD or
+XSD - it only checks if the file is well-formed. To ensure that te SML
+conforms to a DTD, use <code>validate = T</code>.</p>
+<p>Other parameters include <code>trim</code> (strip whitespace),
+<code>getDTD</code> (should DTD be returned?), and
+<code>isURL</code>.</p>
+<pre class="r"><code>domP &lt;- xmlParse(&quot;pagevisits.xml&quot;, validate = T)</code></pre>
+<p><br></p>
+</div>
+</div>
+<div id="extracting-elements" class="section level1">
+<h1>Extracting Elements</h1>
+<p>There are two common ways to extract element values – through
+indexing the DOM and through XPath.</p>
+<p>We use an example XML:</p>
+<pre class="xml"><code>&lt;catalog&gt;
+   &lt;book id=&quot;bk101&quot; edition=&quot;3&quot;&gt;
+      &lt;author&gt;
+        &lt;surname&gt;Gambardella&lt;/surname&gt;
+        &lt;given&gt;Matthew&lt;/given&gt;
+      &lt;/author&gt;
+      &lt;title&gt;XML Developer&#39;s Guide&lt;/title&gt;
+      &lt;outofprint /&gt;
+      &lt;price currency=&quot;R$&quot;&gt;349&lt;/price&gt;
+   &lt;/book&gt;
+   &lt;book id=&quot;bk102&quot; edition=&quot;1&quot;&gt;
+      &lt;author&gt;
+        &lt;surname&gt;Ralls&lt;/surname&gt;
+        &lt;given&gt;Kim&lt;/given&gt;&lt;/author&gt;
+      &lt;title&gt;Midnight Rain&lt;/title&gt;
+      &lt;price currency=&quot;US$&quot;&gt;5.95&lt;/price&gt;
+   &lt;/book&gt;
+&lt;/catalog&gt;</code></pre>
+<p>We begin by loading the XML.</p>
+<pre class="r"><code>xmlDoc &lt;- xmlParse(&quot;files/SimpleXML.xml&quot;, validate = F)</code></pre>
+<div id="indexed-access" class="section level2">
+<h2>Indexed Access</h2>
+<p>To access elements, we first acquire the root element of the DOM
+tree.</p>
+<pre class="r"><code>root &lt;- xmlRoot(xmlDoc)</code></pre>
+<p>Accessing the <em>ith</em> child node underneath the root can be done
+using the list access operator <code>[[i]]</code>. This can be continued
+all the way down a tree.</p>
+<pre class="r"><code>print(root[[1]])</code></pre>
+<pre><code>## &lt;book id=&quot;bk101&quot; edition=&quot;3&quot;&gt;
+##   &lt;author&gt;
+##     &lt;surname&gt;Gambardella&lt;/surname&gt;
+##     &lt;given&gt;Matthew&lt;/given&gt;
+##   &lt;/author&gt;
+##   &lt;title&gt;XML Developer&#39;s Guide&lt;/title&gt;
+##   &lt;outofprint/&gt;
+##   &lt;price currency=&quot;R$&quot;&gt;349&lt;/price&gt;
+## &lt;/book&gt;</code></pre>
+<pre class="r"><code>aNode &lt;- root[[2]][[1]][[2]]
+
+print(aNode)</code></pre>
+<pre><code>## &lt;given&gt;Kim&lt;/given&gt;</code></pre>
+<p>To retrieve the value of a node, use <code>xmlValue()</code></p>
+<pre class="r"><code>xmlValue(aNode) |&gt; print()</code></pre>
+<pre><code>## [1] &quot;Kim&quot;</code></pre>
+<p>One advantage of this model is that the tree can be processed in a
+loop.</p>
+<pre class="r"><code># extracting all author surnames
+n &lt;- xmlSize(root)
+
+names &lt;- c(length = n)
+
+for (i in 1:n) {
+  names[i] &lt;- xmlValue(root[[i]][[1]][[1]])
+}
+
+cat(names)</code></pre>
+<pre><code>## Gambardella Ralls</code></pre>
+<div id="optional-elements" class="section level3">
+<h3>Optional Elements</h3>
+<p>Optional elements can be tricky when using indexed access. One
+technique to handle this is by checking the name of a node using
+<code>xmlName()</code>.</p>
+<pre class="r"><code>node &lt;- xmlName(root[[1]][[3]]) 
+ifelse (node == &quot;outofprint&quot;, &quot;Out of Print&quot;, &quot;Printing&quot;)</code></pre>
+<pre><code>## [1] &quot;Out of Print&quot;</code></pre>
+</div>
+</div>
+<div id="storing-xml-in-data-frame" class="section level2">
+<h2>Storing XML in Data Frame</h2>
+<p>Storing XML into a data frame is a common strategy when converting
+data from XML to a tabular format or saving to relational database</p>
+<pre class="r"><code># number of &lt;book&gt; nodes
+n &lt;- xmlSize(root)
+
+# empty data frame
+df &lt;- data.frame(title = as.character(n),
+                 price = as.numeric(n))
+
+for (i in 1:n)
+{
+  title &lt;- xmlValue(root[[i]][[2]])
+  node &lt;- xmlName(root[[i]][[3]])
+  price.node &lt;- ifelse(node == &quot;outofprint&quot;, 
+                       4, 3)
+  
+  price &lt;- xmlValue(root[[i]][[price.node]])
+  price.value &lt;- as.numeric(price)
+  
+  # add to data frame
+  df[i,&quot;title&quot;] &lt;- title
+  df[i,&quot;price&quot;] &lt;- price.value
+}
+
+head(df,3)</code></pre>
+<pre><code>##                   title  price
+## 1 XML Developer&#39;s Guide 349.00
+## 2         Midnight Rain   5.95</code></pre>
+<div id="extracting-attributes" class="section level3">
+<h3>Extracting Attributes</h3>
+<p>Attributes are extracted using <code>xmlAttrs()</code>, which accepts
+a method and returns a list of all attributes.</p>
+<pre class="r"><code>xmlAttrs(root[[1]])</code></pre>
+<pre><code>##      id edition 
+## &quot;bk101&quot;     &quot;3&quot;</code></pre>
+<p>To extract a specific attribute, use <code>xmlGetAttr()</code>.</p>
+<pre class="r"><code>xmlGetAttr(root[[1]], &quot;edition&quot;)</code></pre>
+<pre><code>## [1] &quot;3&quot;</code></pre>
+</div>
+</div>
+<div id="xpath" class="section level2">
+<h2>XPath</h2>
+<p><a
+href="http://artificium.us/lessons/06.r/l-6-324-parse-xml-dom/l-6-324.html">XPath
+in R</a></p>
+<p><a
+href="http://artificium.us/lessons/06.r/l-6-303-xpath-in-r/l-6-303.html">Data
+retrieval with XPath Examples</a></p>
+<p><a
+href="https://northeastern.instructure.com/courses/123281/pages/30-min-read-a-primer-on-xpath-functions?module_item_id=7536375">XPath
+functions</a></p>
+<p>XPath expressions can access elements and attributes in a more
+elegant, simple way.</p>
+<p><code>xpathSApply()</code> applies an XPath expression and returns a
+list of all nodes matching that expression.</p>
+<ul>
+<li>there is also <code>xpathApply()</code>, but this is not preferred
+as it returns a list rather than a simplified vector</li>
+</ul>
+<pre class="r"><code>xpathSApply(xmlDoc, 
+            &quot;//book/title&quot;)</code></pre>
+<pre><code>## [[1]]
+## &lt;title&gt;XML Developer&#39;s Guide&lt;/title&gt; 
+## 
+## [[2]]
+## &lt;title&gt;Midnight Rain&lt;/title&gt;</code></pre>
+<p>To retrieve values of elements, add <code>xmlValue()</code> as a
+parameter. We don’t need to add xmlValue when retrieving attribute
+values.</p>
+<pre class="r"><code>xpathSApply(xmlDoc, 
+            &quot;//book/title&quot;, 
+            xmlValue)</code></pre>
+<pre><code>## [1] &quot;XML Developer&#39;s Guide&quot; &quot;Midnight Rain&quot;</code></pre>
+<div id="missing-elements" class="section level3">
+<h3>Missing Elements</h3>
+<p>Check for optional elements using XPath by finding the length of the
+returned list.</p>
+<pre class="r"><code>xpathSApply(xmlDoc, &quot;//book/genre&quot;, xmlValue) |&gt;
+  length()</code></pre>
+<pre><code>## [1] 0</code></pre>
+</div>
+</div>
+<div id="xpath-with-indexed-access" class="section level2">
+<h2>XPath with Indexed Access</h2>
+<p>If there are multiple of an element within a parent, or none at all,
+combinations of XPath and indexed access may be necessary.</p>
+<p>Consider a more complex XML with multiple prices, where we only what
+to extract US prices. Here’s an example of a node:</p>
+<pre class="xml"><code>&lt;catalog&gt;
+   &lt;book id=&quot;bk101&quot; edition=&quot;3&quot;&gt;
+      &lt;author&gt;
+        &lt;surname&gt;Gambardella&lt;/surname&gt;
+        &lt;given&gt;Matthew&lt;/given&gt;
+      &lt;/author&gt;
+      &lt;title&gt;XML Developer&#39;s Guide&lt;/title&gt;
+      &lt;outofprint /&gt;
+      &lt;price currency=&quot;R$&quot;&gt;349&lt;/price&gt;
+      &lt;price currency=&quot;US$&quot;&gt;29.95&lt;/price&gt;
+      &lt;price currency=&quot;€&quot;&gt;34.00&lt;/price&gt;
+   &lt;/book&gt;
+   ...
+ &lt;/catalog&gt;</code></pre>
+<p>There are multiple approaches to solve this, but one is below that
+affords more flexibility than pure XPath.</p>
+<pre class="r"><code>xmlDoc &lt;- xmlParse(&quot;files/SimpleXML-2.xml&quot;)
+
+n &lt;- xmlSize(root)
+
+# get all &lt;book&gt; nodes from the XML
+books &lt;- xpathSApply(xmlDoc, &quot;//book&quot;)
+
+# iterate over the &lt;book&gt; nodes
+for (i in 1:n) {
+  # get the i-th book node
+  aBook &lt;- books[[i]]
+  
+  # use XPath to extract the &lt;price&gt; child elements
+  xpathSApply(aBook,
+              &quot;price[./@currency=&#39;US$&#39;]&quot;,
+              xmlValue)
+}</code></pre>
+</div>
+</div>
+<div id="loading-simple-xml-into-a-dataframe" class="section level1">
+<h1>Loading simple XML into a dataframe</h1>
+<p><a
+href="http://artificium.us/lessons/06.r/l-6-323-load-xml-xmlToDataFrame/l-6-323.html">lesson
+link</a></p>
+<p>Simple row/column XML files can be loaded directly into a dataframe
+using <code>xmlToDataFrame()</code>. It’s convenient to load simple XML
+files that are often the result of data exports.</p>
+<pre class="r"><code>df &lt;- xmlToDataFrame(filename, 
+                     stringsAsFactors = F)</code></pre>
+<p>Note that all values will be loaded as text and may require explicit
+numeric conversion.</p>
+<p>For more complex XML documents, a combination of XPath and DOM must
+be used.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

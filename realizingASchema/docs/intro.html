@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Creation and Selection</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Implementing a Database</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Overview</a>
+</li>
+<li>
+  <a href="intro.html">Creation and Selection</a>
+</li>
+<li>
+  <a href="primarykeys.html">Primary Keys</a>
+</li>
+<li>
+  <a href="lookuptables.html">Lookup Tables</a>
+</li>
+<li>
+  <a href="metadata.html">Metadata</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Creation and Selection</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#creating-a-database">Creating a Database</a>
+<ul>
+<li><a href="#creating-tables">Creating Tables</a>
+<ul>
+<li><a href="#with-sql">With {sql}</a></li>
+<li><a href="#with-r-methods">With R Methods</a></li>
+<li><a href="#foreign-key-behaviour">Foreign Key behaviour</a></li>
+</ul></li>
+<li><a href="#insert-data">Insert Data</a>
+<ul>
+<li><a href="#inserting-with-default-values">Inserting with Default Values</a></li>
+<li><a href="#inserting-new-rows-with-select-data">Inserting new rows with <code>select</code> data</a></li>
+</ul></li>
+<li><a href="#retrieving-data">Retrieving Data</a></li>
+<li><a href="#disconnecting">Disconnecting</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/06.r/l-6-300-create-sqlitedb-in-r/l-6-300.html">Source</a></p>
+<div id="creating-a-database" class="section level1">
+<h1>Creating a Database</h1>
+<p><strong>With R:</strong></p>
+<ul>
+<li>Formed by connecting to db that doesn’t exist</li>
+<li>database files have extension <em>.db</em> or <em>.sqlitedb</em></li>
+</ul>
+<pre class="r"><code>library(RSQLite)
+
+fpath = &quot;&quot;
+dbfile = &quot;committeeDB.sqlite&quot;
+
+dbcon &lt;- dbConnect(SQLite(), paste0(fpath, dbfile))</code></pre>
+<p><strong>With SQL</strong></p>
+<pre class="sql"><code>create database [if not exists] db_name;</code></pre>
+<p>After declaration, set context with <code>use</code> command:</p>
+<pre class="sql"><code>use db_name;</code></pre>
+<div id="creating-tables" class="section level2">
+<h2>Creating Tables</h2>
+<p>SQL commands can be executed via <code>{sql}</code> code chunks or by using R methods.</p>
+<div id="with-sql" class="section level3">
+<h3>With {sql}</h3>
+<p><code>DROP</code> deletes tables that might already exist:</p>
+<pre class="sql"><code>drop table if exists Faculty</code></pre>
+<p><code>CREATE TABLE</code> creates a table. Note each column listed and the primary key designation.</p>
+<ul>
+<li>each field requires the name of the field, type of the field, and field attributes
+<ul>
+<li>supported field constraints: <code>not null</code>, <code>unique</code>, <code>default default_value</code>, <code>auto_increment</code></li>
+</ul></li>
+<li>constraints must be assigned a unique name, preferably relevant</li>
+<li>Declaration of a primary key can either be in attribute definition or as a constraint declaration
+<ul>
+<li><code>id INT AUTO_INCREMENT PRIMARY KEY</code></li>
+<li><code>id INT AUTO_INCREMENT</code> … <code>CONSTRAINT student_pk PRIMARY KEY (id)</code></li>
+<li>composite keys must be declared as a constraint - pass in multiple arguments</li>
+</ul></li>
+</ul>
+<pre class="sql"><code>create table Faculty(
+  fid integer not null,
+  fname text not null,
+  lname text not null,
+  rank text,
+  primary key (fid)
+)</code></pre>
+</div>
+<div id="with-r-methods" class="section level3">
+<h3>With R Methods</h3>
+<ul>
+<li><code>dbExecute()</code> submits and executes SQL data manipulation statement</li>
+<li><code>dbExecute()</code> and <code>dbGetQuery()</code> used for selection</li>
+</ul>
+<pre class="r"><code># using paste0 for clarify
+sql &lt;- paste0(
+  &quot;create table Faculty (&quot;,
+  &quot;fid integer not null,&quot;,
+  &quot;fname text not null,&quot;,
+  &quot;lname text not null,&quot;,
+  &quot;rank text,&quot;, %&gt;% 
+  &quot;primary key (fid)&quot;,
+  &quot;)&quot;
+)
+
+dbExecute(dbcon, sql)</code></pre>
+</div>
+<div id="foreign-key-behaviour" class="section level3">
+<h3>Foreign Key behaviour</h3>
+<ul>
+<li>SQLite doesn’t check foreign key constraints by default. to enable, use <code>pragma</code> command before creating tables:</li>
+</ul>
+<pre class="sql"><code>pragma foreign_keys = on</code></pre>
+<p>We can specify foreign keys within table declaration.</p>
+<pre class="sql"><code>create table Committee (
+  name text not null,
+  level text,
+  chair integer not null,
+  primary key (name),
+  foreign key (chair) references Faculty(fid)
+)</code></pre>
+<p>To specify how a database should perform when a tuple referenced by a foreign key is updated or deleted, we can use <strong>foreign key constraints</strong>.</p>
+<ul>
+<li><code>on update [restrict | cascade | set null | set default]</code></li>
+<li><code>on delete [restrict | cascade | set null | set default]</code></li>
+<li><code>restrict</code> is default behaviour - attempts to modify/delete the referenced tuple would fail.</li>
+<li><code>cascade</code> - cascade change through whole database by removing tuples referencing changed tuple</li>
+</ul>
+<pre class="sql"><code>create table course (
+  cid integer, 
+  fid integer,
+  constraint c_f_pk primary key (cid, fid), 
+  constraint f_fk_f foreign key fid references Faculty(fid) on delete restrict
+);</code></pre>
+</div>
+</div>
+<div id="insert-data" class="section level2">
+<h2>Insert Data</h2>
+<p><strong>With {sql} chunks</strong></p>
+<pre class="sql"><code>insert into Faculty (fid, fname, lname, rank) values
+  (100,&quot;Jose&quot;,&quot;Annunziato&quot;,&quot;Assistant&quot;),
+  (200,&quot;Dan&quot;,&quot;Feinberg&quot;,&quot;Adjunct&quot;),
+  (300,&quot;Martin&quot;,&quot;Schedlbauer&quot;,&quot;Full&quot;),
+  (400,&quot;Kathleen&quot;,&quot;Durant&quot;,&quot;Associate&quot;);</code></pre>
+<pre class="sql"><code>insert into Committee values
+  (&quot;Hiring&quot;,&quot;College&quot;, 300),
+  (&quot;Merit&quot;,&quot;College&quot;, 300),
+  (&quot;Teaching&quot;,&quot;Department&quot;, 400);</code></pre>
+<p><strong>With R Methods</strong></p>
+<ul>
+<li><code>dbexecute()</code> returns number of rows affected - can use to determine efficacy</li>
+<li>can also use <code>dbSendStatement()</code></li>
+</ul>
+<pre class="r"><code># note use of single quotes
+sql &lt;- paste0(
+  &#39;insert into Committee values&#39;, 
+  &#39;(&quot;Integrity&quot;,&quot;College&quot;,100),&#39;,
+  &#39;(&quot;Research&quot;,&quot;College&quot;, 300),&#39;,
+  &#39;(&quot;CATLR&quot;,&quot;University&quot;,400);&#39;
+  )
+
+n &lt;- dbExecute(dbcon, sql)
+
+if (n &lt; 1)
+  print(&quot;Error during insert&quot;)</code></pre>
+<div id="inserting-with-default-values" class="section level3">
+<h3>Inserting with Default Values</h3>
+<p>When creating a table, can specify default values for columns with <code>default</code>.</p>
+<pre class="sql"><code>create table if not exists person (
+  pname text default &quot;John Doe&quot;, 
+  page integer,
+  pstatus text default &quot;alive&quot;
+)</code></pre>
+<p>Use <code>insert default values</code> to insert a new row into table using default values specified or <code>NULL</code>.</p>
+<ul>
+<li>This will not work for tables with a non-defaulting, non-null attribute.</li>
+</ul>
+<pre class="sql"><code>insert into person default values;</code></pre>
+</div>
+<div id="inserting-new-rows-with-select-data" class="section level3">
+<h3>Inserting new rows with <code>select</code> data</h3>
+<p>For this example, we would like to backup the person table.</p>
+<pre class="sql"><code>create table person_backup(
+  pname text default &quot;John Doe&quot;, 
+  page integer,
+  pstatus text default &quot;alive&quot;
+)</code></pre>
+<p>To insert data from one table into another, use</p>
+<pre class="sql"><code>insert into person_backup 
+select pname, page, pstatus
+  from person;</code></pre>
+</div>
+</div>
+<div id="retrieving-data" class="section level2">
+<h2>Retrieving Data</h2>
+<p><strong>With {sql}</strong></p>
+<pre class="sql"><code>select * from Faculty limit 3;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>3 records</caption>
+<thead>
+<tr class="header">
+<th align="right">fid</th>
+<th align="left">fname</th>
+<th align="left">lname</th>
+<th align="left">rank</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">100</td>
+<td align="left">Jose</td>
+<td align="left">Annunziato</td>
+<td align="left">Assistant</td>
+</tr>
+<tr class="even">
+<td align="right">200</td>
+<td align="left">Dan</td>
+<td align="left">Feinberg</td>
+<td align="left">Adjunct</td>
+</tr>
+<tr class="odd">
+<td align="right">300</td>
+<td align="left">Martin</td>
+<td align="left">Schedlbauer</td>
+<td align="left">Full</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>With R Functions</strong></p>
+<ul>
+<li>several available methods - most common is <code>dbGetQuery()</code>
+<ul>
+<li>currently being discontinued</li>
+</ul></li>
+</ul>
+<pre class="r"><code>sql &lt;- &quot;select * from Faculty&quot;
+
+rs &lt;- dbGetQuery(dbcon, sql) 
+
+# note that result is a dataframe!
+print (rs)</code></pre>
+<pre><code>##   fid    fname       lname      rank
+## 1 100     Jose  Annunziato Assistant
+## 2 200      Dan    Feinberg   Adjunct
+## 3 300   Martin Schedlbauer      Full
+## 4 400 Kathleen      Durant Associate</code></pre>
+</div>
+<div id="disconnecting" class="section level2">
+<h2>Disconnecting</h2>
+<ul>
+<li>when database connection no longer needed, close it with <code>dbDisconnect()</code>. Frees up database itself + other resources</li>
+</ul>
+<pre class="r"><code>dbDisconnect(dbcon)</code></pre>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

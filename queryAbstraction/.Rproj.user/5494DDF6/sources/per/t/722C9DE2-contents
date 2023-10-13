@@ -1,0 +1,16 @@
+name: "Query Abstraction"
+output_dir: 'docs'
+navbar:
+  title: "Query Abstraction"
+  left:
+    - text: "Relational Algebra"
+      href: index.html
+    - text: "Tuple Relational Calculus"
+      href: relcalc.html
+    - text: "Assignment"
+      href: assignment.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

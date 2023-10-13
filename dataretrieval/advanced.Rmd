@@ -1,0 +1,66 @@
+---
+title: 'Advanced Concepts: `SELECT/WHEN` and `PARTITION BY`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Unions
+
+* Join rows the same column names
+* `UNION ALL` will include duplicate rows 
+* Create additional constant value tables within the select statement to differentiate sources
+* to merge discrete rows, add `''` to mark null columns
+
+```{sql eval = FALSE}
+/* store and online will be an unnamed column */
+select 'STORE', saleID, subtotal, salesperson from StoreSales
+ union all 
+select 'ONLINE', saleID, subtotal, '' from OnlineSales
+```
+
+## Recursion and Hierarchical Queries ##
+
+Example of an hierarchy: employees within a company have a `managerID` that points to their manager: ultimate boss is null
+
+Consists of **anchor query** - where recursive process begins. 
+
+**Recursive query** then joins to itself and continues re-runnning. 
+
+
+```{sql eval = FALSE}
+with employeeHier as ( -- temporary table
+-- BOSS/CEO
+select employeeID, name, managerID, 1 as [Level]
+  from employeeTable 
+ where managerID is null
+ union all -- joining with next tier
+select e.employeeID, e.name, e.managerID, eh.[Level] + 1 as [Level]
+  from employeeTable e
+ inner join employeeHier eh on e.employeeID = e.managerID
+ where e.managerID is not null --deselecting CEO
+) select * from employeeHier -- selecting from result table
+```
+
+## Partitioning 
+
+* Order by is important because it determines a concrete order within each group
+* `partition by` will return values for each individual within a partition, rather than lumping together by group like `group by`
+
+```{sql eval = FALSE}
+/* what percent of the total for the day is each order? */
+select orderDate, salesID, totalDue,
+       SUM(totalDue) over (partition by orderDate) as totalSales, -- total sales
+       totalDue/sum(totalDue) over (partition by orderDate) * 100 as PctTotal -- percent of total 
+  from storeSales
+ order by orderDate, salesID
+```
+
+```{sql eval = FALSE}
+/* creates numbers 1-n for each order by a salesperson */
+select ROW_NUMBER() over ( partition by salespersonID order by orderDate) as RowNum, salespersonID, orderDate
+  from storeSales
+ where salespersonID is not null
+```

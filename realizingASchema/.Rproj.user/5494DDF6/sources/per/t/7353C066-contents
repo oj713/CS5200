@@ -1,0 +1,20 @@
+name: "Database Realization"
+output_dir: 'docs'
+navbar:
+  title: "Implementing a Database"
+  left:
+    - text: "Overview"
+      href: index.html
+    - text: "Creation and Selection"
+      href: intro.html
+    - text: "Primary Keys"
+      href: primarykeys.html
+    - text: "Lookup Tables"
+      href: lookuptables.html
+    - text: "Metadata"
+      href: metadata.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

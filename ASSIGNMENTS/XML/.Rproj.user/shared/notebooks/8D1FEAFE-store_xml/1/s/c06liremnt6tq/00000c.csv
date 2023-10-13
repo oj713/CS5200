@@ -1,0 +1,2 @@
+"0","SELECT MIN(strftime('%Y', publish_date)) as ""Year""
+  FROM Book"

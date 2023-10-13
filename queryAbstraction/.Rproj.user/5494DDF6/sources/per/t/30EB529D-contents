@@ -1,0 +1,39 @@
+---
+title: "Tuple Relational Calculus"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[lesson link](http://artificium.us/lessons/60.dbdesign/l-60-505-rel-calculus/l-60-505.html#Overview)
+
+Relational calculus is an alternative to relational algebra. It's a declarative query language as it specifics what to retrieve rather than how to retrieve it. 
+
+There are two forms of rel calculus: tuple relational calculus (TRC) and domain relational calculus (DRC). Here we focus on TRC, where the set specification ranges on tuples from a specific relation. 
+
+# Tuple Variables
+
+TRC is based on *tuple variables*, which take tuples of a specific relation as values. 
+
+A simple TRC query looks like $\{t : P(t)\}$ or $\{t | P(t)\}$, where $t$ is a tuple variable and $P(t)$ is a condition for defining which tuples to select. 
+
+Example: $\{t.title, t.price : book(t) \land t.price > 10\}$ means "retrieve the title and price of all books > $50". 
+
+# Expressions and Formulas 
+
+A formula consists of 1+ tuple variables and is comprised of *atoms* grouped into *logical expression* evaluating to a truth value.
+
+Logical operators include:
+
+* $\land, \lor, \lnot$
+* existential quantifier $\exists P(Q)$: is there at least one $Q$ for which $P$ is true?
+* uniqueness quantifier$\exists ! P(Q)$: Is there exactly one $Q$ for which $P$ is true?
+* existential quantifier $\nexists P(Q)$: Is there no $Q$ for which $P$ is true?
+* universal quantifier $\forall P(Q)$: Is $P$ true for all $Q$?
+* implies $Q \implies P$: If $Q$ is true, must $P$ also be true? Equivalent to $\lnot Q \lor P$. 
+
+**Bound vs. Free Tuple Variables**: A tuple variable is *bound* if it is quantified by a $\exists t$ or $\forall t$ clause; otherwise it's free. 
+
+

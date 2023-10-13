@@ -1,0 +1,101 @@
+---
+title: "WHERE"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+`WHERE` allows filtering of unwanted rows. 
+  
+  * force precedence by using parentheses
+  * null can be identified through `IS NULL` or `IS NOT NULL`
+  * note that XOR is not supported at base SQL
+
+```{sql eval = FALSE}
+select * from Address
+ where ((NOT street = 'Alberta Street')
+    or district = 'Minas Gerais')
+   and phone IS NULL;
+```
+
+<br>
+
+## `LIKE`
+
+LIKE operator is used for partial string matching
+
+  * `%` matches zero or more characters
+  * `_` matches exactly one character
+  * does not support regular expressions, only 2 wildcards - > complex matching must be done with program code
+  
+```{sql eval = FALSE}
+  select distinct district from Address
+   where (phone like '_55%1212')
+      or (phone like '%840%'); 
+```
+
+<br>
+
+## `BETWEEN`
+
+BETWEEN tests ranges and can simplify where clauses. Most useful for date ranges. 
+
+* `BETWEEN a AND b` is equivalent to `x >= a AND x <= b`
+
+```{sql eval = FALSE}
+select * from Payment
+ where amount between 5 and 10;
+```
+
+<br>
+
+## `IN`
+
+IN tests for set membership and can simply complex OR logic. 
+
+```{sql eval = FALSE}
+select distinct district from Address
+ where postal_code in (420, 69, 007);`
+```
+```{sql eval = FALSE}
+/* incorporating NOT */
+select distinct district from Address
+ where postal_code not in (420, 69, 007);`
+```
+```{sql eval = FALSE}
+/* can reverse and check if a literal exists in columns */
+select distinct * from Customers
+ where 'Johnson' in (first_name, last_name);
+```
+
+<br>
+
+## `ANY` and `ALL`
+
+`ANY` and `ALL` are **Existential Qualifiers** and often combined with `IN` and `NOT IN`. 
+
+* SQLite does not support `ANY` and `ALL`. 
+
+```{sql eval = FALSE}
+select *
+  from Courses
+ where credits > any(4, 2, 3); /* all(4, 2, 3) */
+```
+
+<br>
+
+## Unions: Combining Query Results
+
+Unions are combinations of two or more results set into single result set. 
+
+* results set must have same number of columns with same data types
+
+```{sql eval = FALSE}
+select * from courses
+ where credits > 3
+union
+select * from Courses 
+ where dept = 'IE'
+```

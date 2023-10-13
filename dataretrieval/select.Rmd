@@ -1,0 +1,109 @@
+---
+title: "SELECT"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(RSQLite)
+
+db <- dbConnect(SQLite(), "AssetDB.db")
+```
+
+<br>
+
+## Query Basic Commands
+
+Queries are issued through select statements. 
+
+* only `SELECT` and `FROM` are required clauses.
+
+```{sql eval = FALSE}
+SELECT [columns]
+  FROM [tables]
+ WHERE [column conditions]
+ GROUP BY [column]
+   HAVING [group criteria]
+ ORDER BY [columns];
+```
+
+Retrieve columns by listing their names, or use * to retrieve them all. 
+
+```{sql connection = db}
+SELECT name, email FROM Author;
+```
+
+### `AS`
+
+Use `AS` to create **column aliases** and rename retrieved variables. 
+
+* most useful for reporting or simplying conditions for `WHERE`. 
+
+```{sql connection = db}
+select name as FullName, email as EMail from Author;
+```
+
+### `LIMIT`
+
+equivalent to `head()` - limits result to first *n* rows. 
+```{sql connection = db}
+select name, email from author limit 2;
+```
+
+### `ORDER BY`
+
+Results are returned in a table known as **result set**. These results do **not** have a specific order. 
+
+Specify order of rows with `ORDER BY`
+
+* Supply additional column rows to break ties
+* Specify sorting direction as ASC or DESC
+* Text is sorted alphabetically
+
+```{sql connection = db}
+  select name, email 
+    from Author
+order by name, email desc;
+```
+
+### `DISTINCT`
+
+Use `DISTINCT` to eliminate duplicate rows. It applies to all selected columns. 
+
+```{sql eval = FALSE}
+select distinct district from Address;
+```
+
+<br>
+
+## Query Arguments
+
+Queries can contain literals, expressions, and various methods. 
+
+**Literals** can select only values matching that literal. 
+
+```{sql connection = db}
+select 'Joe Chang' name, email from Author;
+```
+
+**Expressions** can manipulate returned values
+
+```{sql eval = FALSE}
+/* example: not evaluated */
+select title, length/60.0 AS hrs from Film;
+```
+
+**Functions** can perform operations on returned values
+
+* inbuilt methods include `ABS`, `POWER`, `FLOOR`, `LENGTH(string)`, `SUBSTR(s, m [,n])`, `ADD_MONTHS(date, n)`, etc. 
+
+```{sql connection = db}
+select upper(name), email from Author;
+```
+
+```{r}
+dbDisconnect(db)
+```

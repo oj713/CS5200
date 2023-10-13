@@ -1,0 +1,169 @@
+---
+title: "Triggers assignment - Omi Johnson"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<br>
+
+## Table Setup (prior assignment) 
+
+```{r initialization}
+# Initialization
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "OJohnson_db.db")
+```
+```{sql connection = dbcon}
+/* Enabling foreign key checking */
+PRAGMA foreign_keys = ON
+```
+```{sql connection = dbcon}
+/* Creating Module Table */
+/* number attribute renamed to mnumber to avoid overlap with reserved keyword. */
+CREATE TABLE Module (
+  mnumber TEXT NOT NULL, 
+  title TEXT NOT NULL, 
+  lengthInMin INTEGER NOT NULL,
+  CONSTRAINT num_is_pk PRIMARY KEY (mnumber)
+)
+```
+```{sql connection = dbcon}
+/* Creating lookup table for author affiliation -
+  choice to use name itself as primary key was deliberate choice to 
+  improve clarity and ease of information access.
+*/
+CREATE TABLE Affiliation (
+  atype TEXT NOT NULL, 
+  CONSTRAINT at_is_pk PRIMARY KEY (atype)
+);
+```
+```{sql connection = dbcon}
+/* Creating Author Table */
+CREATE TABLE Author (
+  aid INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL, 
+  affiliation TEXT NOT NULL,
+  CONSTRAINT aid_is_pk PRIMARY KEY (aid),
+  CONSTRAINT aff_fk_aff FOREIGN KEY (affiliation) REFERENCES Affiliation(atype)
+);
+```
+```{sql connection = dbcon}
+/* Creating Authorship junction Table */
+CREATE TABLE Authorship (
+  aid INTEGER NOT NULL,
+  mnumber TEXT NOT NULL, 
+  CONSTRAINT all_is_pk PRIMARY KEY (aid, mnumber),
+  CONSTRAINT aid_fk_au FOREIGN KEY (aid) REFERENCES Author(aid),
+  CONSTRAINT mnum_fk_af FOREIGN KEY (mnumber) REFERENCES Module(mnumber)
+)
+```
+```{sql connection=dbcon}
+INSERT INTO Affiliation (atype) VALUES
+  ("PT"), ("FT"), ("Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Author (aid, name, email, affiliation) VALUES
+  (14, "John", "john@email.com", "FT"),
+  (15, "Ash", "ash@email.com", "PT"),
+  (16, "Doe", "doe@email.com", "PT"),
+  (17, "Diane", "diane@email.com", "Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Module (mnumber, title, lengthInMin) VALUES
+  ("01", "Dogs in Nature", 12),
+  ("02", "Fall leaves", 7),
+  ("03", "Party planning", 90);
+```
+```{sql connection=dbcon}
+INSERT INTO Authorship (aid, mnumber) VALUES
+  (14, "01"),
+  (14, "02"),
+  (17, "03"),
+  (15, "02");
+```
+
+<br>
+
+## Additional Table Insertion
+
+The `employmentChange` table logs changes in an employment for an author. 
+
+```{sql connection = dbcon}
+/* assuming that employment change cannot happen twice within a day */
+CREATE TABLE IF NOT EXISTS employmentChange (
+  aid INTEGER NOT NULL,
+  prior_aff TEXT,
+  new_aff TEXT,
+  changeDate DATE NOT NULL,
+  CONSTRAINT aid_date_is_pk PRIMARY KEY (aid, changeDate),
+  CONSTRAINT aid_ref_auth FOREIGN KEY (aid) REFERENCES Author(aid),
+  CONSTRAINT p_aff_ref_aff FOREIGN KEY (prior_aff) REFERENCES Affiliation(atype),
+  CONSTRAINT n_aff_ref_aff FOREIGN KEY (new_aff) REFERENCES Affiliation(atype)
+)
+```
+
+<br>
+
+## Trigger Creation and Explanation
+
+The `logEmploymentChange` trigger logs changes in employment status to the `employmentChange` table in the case an author's employment type changed. It records the current date, the prior and new employment type, and the author id to the `employmentChange` table. This trigger is important because keeping track of employment type history for authors, and the dates for each switch, is critical information for a company to keep an accurate log of individual author's work history and to derive information on the number of employees within a specific type at a given point in time.
+
+```{sql connection = dbcon}
+DROP TRIGGER IF EXISTS logEmploymentChange
+```
+
+```{sql connection = dbcon}
+CREATE TRIGGER logEmploymentChange 
+  AFTER UPDATE ON Author
+  FOR EACH ROW 
+  WHEN (NEW.Affiliation <> OLD.Affiliation)
+    BEGIN
+      INSERT INTO employmentChange VALUES
+      (NEW.aid, OLD.Affiliation, NEW.Affiliation, DATE('now'));
+END;
+```
+
+<br>
+
+## Trigger testing 
+
+```{sql connection = dbcon}
+/* does logEmploymentChange work correctly moving from one role to another? Does it ignore 
+cases where the prior and updated employment type are the same? */
+UPDATE Author 
+   SET Affiliation = "FT"
+ WHERE aid IN (14, 15, 17)
+```
+```{sql connection = dbcon}
+/* Does logEmploymentChange ignore cases where a different attribute is updated? */
+UPDATE Author 
+   SET email = "doe12@email.com"
+ WHERE aid IN (16)
+```
+```{sql connection = dbcon}
+/* Does logEmploymentChange log employment changes when multiple attributes update? */
+UPDATE Author 
+   SET email = "doe21@email.com", Affiliation = "Contract"
+ WHERE aid IN (16)
+```
+
+```{sql connection = dbcon}
+/* expect three rows */
+SELECT * FROM employmentChange
+```
+
+```{r}
+dbDisconnect(dbcon)
+```
+
+```{r eval = FALSE}
+file.remove("OJohnson_db.db") #run manually to allow re-execution
+```
+
+<br>

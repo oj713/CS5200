@@ -1,0 +1,8 @@
+"0","conditions_df <- data.frame(ccondition = unique(birdstrikes$ccondition),"
+"0","                            explanation = NA)"
+"0",""
+"0","conditions_df$cid <- 1:nrow(conditions_df)"
+"0",""
+"0","birdstrikes <- merge(birdstrikes, conditions_df, "
+"0","      by = c(""ccondition""),"
+"0","      all = TRUE)"

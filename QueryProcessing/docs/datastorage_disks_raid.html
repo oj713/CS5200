@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Data storage, Disks, and RAID</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Indices and Storage</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Indexing Methods</a>
+</li>
+<li>
+  <a href="indexing_sqlite.html">Indexing in SQLite</a>
+</li>
+<li>
+  <a href="query_pp.html">Query Planning/Processing</a>
+</li>
+<li>
+  <a href="datastorage_disks_raid.html">Data Storage and RAID</a>
+</li>
+<li>
+  <a href="reliability_availability.html">Reliability and Availability</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Data storage, Disks, and RAID</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#storage-devices">Storage devices</a></li>
+<li><a href="#mechanical-disk-drives">Mechanical disk drives</a></li>
+<li><a href="#solid-state-disk-drives">Solid-State Disk Drives</a>
+<ul>
+<li><a href="#comparing-to-mechanical-drives">Comparing to Mechanical drives</a></li>
+<li><a href="#raid-0">RAID 0</a></li>
+<li><a href="#raid-1">RAID 1</a></li>
+<li><a href="#raid-5">RAID 5</a></li>
+<li><a href="#raid-6">RAID 6</a></li>
+<li><a href="#choosing-a-raid-configuration">Choosing a RAID configuration</a></li>
+<li><a href="#raid-controllers">RAID Controllers</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/92.systems/l-92-501-raid/l-92-501.html">lesson link</a></p>
+<p>Data must be stored on a physical device with non-volatile memory, <em>i.e.</em> memory that does not require constant power supply.</p>
+<div id="storage-devices" class="section level2">
+<h2>Storage devices</h2>
+<ul>
+<li>in-computer memory, eg. RAM, cache, is volatile – contents will be lost if power supply is lost.</li>
+<li>non-volatile storage includes mechanical hard disk drives, solid-state devices (eg. flash drives), CD-ROM, DVD, tape.
+<ul>
+<li>most common for databases, file systems are mechanical and solid state devices</li>
+</ul></li>
+</ul>
+</div>
+<div id="mechanical-disk-drives" class="section level2">
+<h2>Mechanical disk drives</h2>
+<p><a href="https://youtu.be/NtPc0jI21i0">video link</a></p>
+<p>Data is stored on a disk magnetically as 1 or 0, aka magnetic bits facing north or south.</p>
+<p><strong>Transducers</strong>:</p>
+<ul>
+<li>data is read and written via transducers – devices converting one type of energy to another
+<ul>
+<li>the transducer head has separate elements to read and write data</li>
+<li>the head is attached to an arm which moves along <strong>strokes</strong> (rings around disk) to read/write data</li>
+<li>when powered off, the head swings off the disk to rest to the side</li>
+<li>the arm moves very precisely to a given address</li>
+</ul></li>
+</ul>
+</div>
+<div id="solid-state-disk-drives" class="section level2">
+<h2>Solid-State Disk Drives</h2>
+<p>SSDs are slightly more expensive and have smaller capacities, BUT are far more reliable and extremely fast. (good example - smartphone drives)</p>
+<ul>
+<li>SSDs have a limited number of “write cycles” – therefore they aren’t good for high-volume transactional databases</li>
+</ul>
+<p><strong>Structure</strong>:</p>
+<ul>
+<li>Charge trap flash memory cell (CTF)
+<ul>
+<li>store difference levels of electrons inside a charge trap</li>
+<li>old technology could only do 2 levels - lots of electrons or very few (1/0)
+<ul>
+<li>can hold 8/16 levels of electrons, meaning that each CTF can store 3 or 4 bits long term (decades)
+<ul>
+<li>SLC (0 or 1), vs. MLC (multi-bytes)</li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li>Vnand (vertical nand) – stack of memory cells, eg. string
+<ul>
+<li><strong>control gates</strong> attached to string ensure that one CTF within a string is read at a time</li>
+<li>information relayed to <strong>bitline</strong> at the top</li>
+</ul></li>
+<li>strings are arranged into 2d <strong>pages</strong>, of which each row shares a control gate</li>
+<li>pages arranged into 3d <strong>blocks</strong>, so that bitlines are connected
+<ul>
+<li><strong>bitline selectors</strong> at top ensure that only one row can use bitline at a time</li>
+</ul></li>
+</ul>
+<div class="figure" style="text-align: center">
+<img src="dd_raid/SSD_dimensions.png" alt="SSD components" width="45%" height="20%" /><img src="dd_raid/SSD_memorychip.png" alt="SSD components" width="45%" height="20%" />
+<p class="caption">
+SSD components
+</p>
+</div>
+<div id="comparing-to-mechanical-drives" class="section level3">
+<h3>Comparing to Mechanical drives</h3>
+<p>Advantages:</p>
+<ul>
+<li>no moving components means that SSDs are silent, use less power, and are much less fragile</li>
+<li>SSDs can also read data much faster because they’re not reliant on the speed of the arm</li>
+</ul>
+<p>Disadvantages:</p>
+<ul>
+<li>high storage cost per gigabyte</li>
+<li>lower drive capacities</li>
+<li>relatively low write speed</li>
+<li>wear leveling – reduces performance over time and causes encryption issues ## RAID: Redundant Array of Independent Devices</li>
+</ul>
+<p>Commonly used method to prevent loss of data, such that the storage system continues to function even when a disk or disk data is lost. * provide protection against/recovery from hardware failures and defective drive hardware * no protection against data loss from environmental failures, eg. fire or flooding * data centers must guard against such events through distributed storage across physical locations</p>
+<p>RAIDs require at least two storage devices – data is copied, mirrored, or striped across devices in the array. There are different RAID configurations distinguished by how they write data across the array. RAID 0 (striping), 1 (mirroring), 5 (distributed parity), and 10 (1 and 0) are most common.</p>
+<ul>
+<li>RAID 0: data is striped across devices without parity which improves performance but does not add any fault tolerance</li>
+<li>RAID 1: data is mirrored onto devices to improve fault tolerance and performance</li>
+<li>RAID 2: data is striped across devices at the bit level with a parity code written to a separate device; improving fault-tolerance; rarely used in practice</li>
+<li>RAID 3: data is striped across devices at the byte level with a parity code written to a separate device improving fault-tolerance; rarely used in practice</li>
+<li>RAID 4: data is striped across devices at the block level with a parity code written to a separate device improving fault-tolerance and performance</li>
+<li>RAID 5: data is striped along with error correcting parity codes across the devices improving fault-tolerance and performance</li>
+<li>RAID 6: same as RAID 5 but with two parity codes allowing for increased fault tolerance but lower performance than RAID 5</li>
+<li>RAID 10: a combination of RAID 0 and 1</li>
+</ul>
+</div>
+<div id="raid-0" class="section level3">
+<h3>RAID 0</h3>
+<ul>
+<li>data is striped evenly across devices without any parity (error correcting) information.
+<ul>
+<li>marginally improves read/write performance, but has no fault tolerance – if a device fails, entire array is compromised</li>
+</ul></li>
+<li>can be used build single large storage device from multiple devices
+<ul>
+<li>array can be made from devices with differing capacities – actual capacity limited to smallest device capacity * number of devices</li>
+<li>array of <em>n</em> storage devices provides read/write rates up to <em>n</em> times higher than individual access rates</li>
+</ul></li>
+<li><strong>Use cases</strong>: environments with high performance needs that can tolerate lower reliability, <em>e.g.</em> scientific computing.
+<ul>
+<li>not appropriate for databases</li>
+</ul></li>
+</ul>
+<p><img src="dd_raid/raid0.png" width="20%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="raid-1" class="section level3">
+<h3>RAID 1</h3>
+<ul>
+<li>data is exactly mirrored onto 2+ storage devices</li>
+<li>devices split into two equal size groups</li>
+<li>fault tolerance holds so long as only one of the original and mirror are damaged</li>
+<li>allows for parallel retrieval, increasing performance</li>
+<li>write performance degraded as data is written twice – but if done in parallel, no worse than single performance</li>
+<li><strong>Use case</strong>: useful when read performance more important than write performance</li>
+</ul>
+<p><img src="dd_raid/raid1.png" width="20%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="raid-5" class="section level3">
+<h3>RAID 5</h3>
+<ul>
+<li>strips data across storage devices in blocks and includes parity (error correcting) information across devices</li>
+<li>can sustain at most one device failure
+<ul>
+<li>in case of failure, info on failed device reconstructed from remaining data and parity data</li>
+<li>reconstruction is computationally intensive, resulting in slow performance</li>
+</ul></li>
+<li>requires &gt;= 3 disks</li>
+<li>offers read performance due to parallel processing; write performance degraded as parity information calculated</li>
+</ul>
+<p><img src="dd_raid/raid5.png" width="20%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="raid-6" class="section level3">
+<h3>RAID 6</h3>
+<ul>
+<li>Extends RAID 5 by adding another parity block, allowing for two device failures</li>
+<li>slower write performance and less capacity than RAID 5, but is more fault tolerant</li>
+<li>same read performance as RAID 5</li>
+<li>requires &gt;= 4 disks</li>
+</ul>
+<p><img src="dd_raid/raid6.png" width="20%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="choosing-a-raid-configuration" class="section level3">
+<h3>Choosing a RAID configuration</h3>
+<ul>
+<li>choice of a RAID configuration depends on use case of system and desired degree of fault tolerance</li>
+<li>RAID 1 best for cases when fault tolerance is needed and cost is not a factor</li>
+<li>RAID 0 best to optimize read performance and cost, ignoring fault tolerance</li>
+<li>RAID 10 best for a higher-cost system with benefits of RAID 1 and RAID 0
+<ul>
+<li>best for transactional system that must be highly available</li>
+</ul></li>
+<li>RAID 5 and 6 strike balance between cost, fault tolerance, and increased performance at cost of write performance
+<ul>
+<li>good choice for data warehouses</li>
+</ul></li>
+</ul>
+</div>
+<div id="raid-controllers" class="section level3">
+<h3>RAID Controllers</h3>
+<p>RAID systems must be controlled by software or hardware.</p>
+<ul>
+<li>either done within operating system (software) or dedicated hardware-based controllers
+<ul>
+<li>hardware controller usually has its own embedded OS</li>
+</ul></li>
+<li>usually dedicated hardware-based controller is faster and more reliable</li>
+</ul>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

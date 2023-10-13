@@ -1,0 +1,147 @@
+---
+title: "Triggers assignment - Omi Johnson"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Table Setup
+
+This setup is identical to assignment 3, exempting the addition of a "dateCreated" attribute to the Module table that records the date of creation. 
+
+```{r initialization}
+# Initialization
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "OJohnson_db.db")
+```
+```{sql connection = dbcon}
+/* Enabling foreign key checking */
+PRAGMA foreign_keys = ON
+```
+```{sql connection = dbcon}
+/* Creating Module Table */
+/* number attribute renamed to mnumber to avoid overlap with reserved keyword. */
+CREATE TABLE Module (
+  mnumber TEXT NOT NULL, 
+  title TEXT NOT NULL, 
+  lengthInMin INTEGER NOT NULL,
+  dateCreated DATE NOT NULL, -- NEW
+  CONSTRAINT num_is_pk PRIMARY KEY (mnumber)
+)
+```
+```{sql connection = dbcon}
+/* Creating lookup table for author affiliation -
+  choice to use name itself as primary key was deliberate choice to 
+  improve clarity and ease of information access.
+*/
+CREATE TABLE Affiliation (
+  atype TEXT NOT NULL, 
+  CONSTRAINT at_is_pk PRIMARY KEY (atype)
+);
+```
+```{sql connection = dbcon}
+/* Creating Author Table */
+CREATE TABLE Author (
+  aid INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL, 
+  affiliation TEXT NOT NULL,
+  CONSTRAINT aid_is_pk PRIMARY KEY (aid),
+  CONSTRAINT aff_fk_aff FOREIGN KEY (affiliation) REFERENCES Affiliation(atype)
+);
+```
+```{sql connection = dbcon}
+/* Creating Authorship junction Table */
+CREATE TABLE Authorship (
+  aid INTEGER NOT NULL,
+  mnumber TEXT NOT NULL, 
+  CONSTRAINT all_is_pk PRIMARY KEY (aid, mnumber),
+  CONSTRAINT aid_fk_au FOREIGN KEY (aid) REFERENCES Author(aid),
+  CONSTRAINT mnum_fk_af FOREIGN KEY (mnumber) REFERENCES Module(mnumber)
+)
+```
+```{sql connection=dbcon}
+INSERT INTO Affiliation (atype) VALUES
+  ("PT"), ("FT"), ("Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Author (aid, name, email, affiliation) VALUES
+  (14, "John", "john@email.com", "FT"),
+  (15, "Ash", "ash@email.com", "PT"),
+  (16, "Doe", "doe@email.com", "PT"),
+  (17, "Diane", "diane@email.com", "Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Module (mnumber, title, lengthInMin, dateCreated) VALUES
+  ("01", "Dogs in Nature", 12, '1974-12-25'),
+  ("02", "Fall leaves", 7, '2000-9-2'),
+  ("03", "Party planning", 90, '2022-10-14');
+```
+```{sql connection=dbcon}
+INSERT INTO Authorship (aid, mnumber) VALUES
+  (14, "01"),
+  (14, "02"),
+  (17, "03"),
+  (15, "02");
+```
+
+<br>
+
+## Trigger Creation and Explanation
+
+The `module_duplicate_title_handling` handles instances where two modules are given the same title. It is logical that some modules may have the same title, as an existing module might be remade for a later year. However, in order to ensure that the modules are able to be distinctly identified in search results this trigger will rename duplicate modules by appending creation date to the title (eg. "Bee Anatomy" becomes "Bee Anatomy (10/16/2022)"). 
+
+* This trigger will only ensure unique names assuming that two modules with the same name would not be uploaded on the same day. This is a reasonable assumption in most circumstances -- more complex, meaningful identifiers are possible but would lower readability.  
+* The existing module entry will also have its title revised to include creation date. 
+* Matching module names ignore appended dates, allowing for recognition of 3+ duplicates. 
+
+```{sql connection = dbcon}
+DROP TRIGGER IF EXISTS module_duplicate_title_handling
+```
+
+```{sql connection = dbcon}
+CREATE TRIGGER module_duplicate_title_handling 
+  AFTER INSERT ON Module
+  FOR EACH ROW 
+  WHEN 1 < (SELECT COUNT(*) FROM Module 
+             WHERE title LIKE NEW.title
+                OR title LIKE NEW.title || " (____-__-__)") -- any duplicates?
+    BEGIN
+      UPDATE module
+         SET title = title || " (" || dateCreated || ")"
+       WHERE title LIKE NEW.title;
+END;
+```
+
+<br>
+
+## Trigger testing 
+
+```{sql connection = dbcon}
+INSERT INTO Module VALUES
+/* does the trigger ignore values which are not exact duplicates? */
+("04", "Party planning in the Bahamas", 3, "2022-10-14"),
+/* Does the trigger appropriately rename duplicates? */
+("05", "Dogs in Nature", 15, "2020-10-11"),
+/* Can the trigger recognize duplicates by ignoring appended dates? */
+("06", "Dogs in Nature", 17, "2022-10-16");
+```
+
+```{sql connection = dbcon}
+/* expect all "Dogs in Nature" modules to have date appended */
+SELECT * FROM Module
+```
+
+```{r}
+dbDisconnect(dbcon)
+```
+
+```{r eval = FALSE}
+file.remove("OJohnson_db.db") #run manually to allow re-execution
+```
+
+<br>

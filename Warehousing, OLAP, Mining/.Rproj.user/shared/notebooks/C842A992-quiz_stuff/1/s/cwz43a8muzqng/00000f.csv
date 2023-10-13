@@ -1,0 +1,5 @@
+"0","med <- xmlParse(""files/pubmed_sample.xml"")"
+"0",""
+"0","findm <- function(xpath_expr) {"
+"0","  xpathSApply(med, xpath_expr) |> head(3)"
+"0","}"

@@ -1,0 +1,133 @@
+---
+title: "Indexing in SQLite"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Lesson link](http://artificium.us/lessons/60.dbdesign/l-60-611-indexing-sqlite/l-60-611.html)
+
+Indexing can speed up data retrievals (SELECT), improve sorting (ORDER BY), and enforce uniqueness constraints (UNIQUE). Most databases automatically index the primary key -- SQLite doesn't, but MySQL does. 
+
+Several data structures may be used for indexing: hashmaps and trees
+
+**B-trees (SQLite)**:
+
+* Self-balancing tree data structure
+* maintains data nodes in sorted order -- searches in $O(\log _n)$ time. 
+* usually > 2 children per nodes
+* best for relatively large block sorting 
+* during access operations entire index is in memory, but data remains on disk. 
+
+```{r}
+library(RSQLite)
+db <- dbConnect(SQLite(), "MediaDB.db")
+```
+
+## Creating an index
+
+Use `CREATE INDEX` to create an index.The general form:
+
+```{sql eval = FALSE}
+CREATE [UNIQUE] INDEX index_name [ASC|DESC] ON table_name(column_list);
+```
+
+* critical for non-prime columns when columns are frequently in joins or searches -- B-trees make equality and range searching much quicker 
+* searches on a compound key should have a compound index 
+* `create unique index` detects duplicated values and is generally implemented with a hashmap/hashtable
+* indexes are not useful for matching searches using `LIKE`
+* indexes common for `ORDER BY` -- in-order traversal of B-tree results in ordered set
+
+```{sql connection = db}
+CREATE INDEX custLN 
+    ON customers(LastName);
+```
+
+## Using an Index
+
+Indexes most useful when direct match search is done on an indexed column in the `WHERE` clause.
+
+* relational databases automatically use an index when available/use improves query performance 
+
+```{sql connection = db}
+SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName = 'Johansson'
+```
+
+`EXPLAIN QUERY PLAN` makes index use explicit and shows that the column is searched.
+
+```{sql connection = db}
+EXPLAIN QUERY PLAN 
+SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName = 'Johansson'
+```
+
+When the index is not useful, it is not used. 
+
+```{sql connection = db}
+EXPLAIN QUERY PLAN 
+SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName LIKE 'Johan%'
+```
+
+**Note**: SQLite does not automatically index the primary key, but does build a hashmap to quickly determine uniqueness.
+
+```{sql connection = db}
+EXPLAIN QUERY PLAN
+SELECT LastName, FirstName
+  FROM customers
+ WHERE CustomerId = 37
+```
+
+## Deleting an Index
+
+Use `DROP INDEX` to delete an index. General form: 
+
+```{sql eval = FALSE}
+DROP INDEX [IF EXISTS] index_name;
+```
+
+```{sql connection = db}
+DROP INDEX custLN;
+```
+
+## Listing Indexes
+
+To list all created and available indexes from a table: 
+
+```{sql connection = db}
+PRAGMA list_indexes('customers');
+```
+
+To list all indexes in a database, query the *sqlite_master* table:
+
+```{sql connection = db}
+SELECT `type`, `name`, `tbl_name`, `sql`
+  FROM sqlite_master
+WHERE `type` = 'index';
+```
+
+## Considerations
+
+* searching with substring matching / `LIKE` cannot use indexes and should be avoided. 
+* when new data is inserted/updated/deleted, indexes must be rearranged. The worst case run-time behaviour of updating a B-Tree is $O(n^2)$, reducing performance. 
+  * indexes should be dropped prior to bulk loading as they reduce performance. After ETL they can be created again. 
+* searching on expressions does not use indexes unless an [index on the expression](https://www.sqlite.org/expridx.html) is created.
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,16 @@
+name: "Warehousing, OLAP, Mining"
+output_dir: 'docs'
+navbar:
+  title: "Warehousing, OLAP, Mining"
+  left:
+    - text: "Data Warehousing"
+      href: index.html
+    - text: "Star Schema"
+      href: starschema.html
+    - text: "Data Mining"
+      href: datamining.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

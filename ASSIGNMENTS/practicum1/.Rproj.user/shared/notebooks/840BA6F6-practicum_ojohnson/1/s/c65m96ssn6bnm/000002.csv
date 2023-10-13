@@ -1,0 +1,7 @@
+"0","yearly_strikes <- "
+"0","  dbGetQuery(mydb, ""SELECT YEAR(idate) AS year, COUNT(*) AS num_incidents"
+"0","                      FROM incidents"
+"0","                     GROUP BY year"
+"0","                     ORDER BY year"")"
+"0",""
+"0","yearly_strikes"

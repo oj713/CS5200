@@ -1,0 +1,4 @@
+"0","SELECT Name, ROUND(SUM(Milliseconds)/3600000.00, 2) AS summed_time_hrs
+  FROM artists_tracks
+ WHERE TrackId IS NOT NULL
+ GROUP BY ArtistId"

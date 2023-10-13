@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE log [
+<!ELEMENT log (Visit*, Page*, Visitor*)>
+
+<!-- page specification -->
+<!ELEMENT Page (url)>
+<!ELEMENT url (#PCDATA)>
+<!ATTLIST Page pid ID #REQUIRED>
+
+<!-- visitor specification -->
+<!ELEMENT Visitor (ip)>
+<!ELEMENT ip (#PCDATA)>
+<!ATTLIST Visitor vid ID #REQUIRED>
+
+<!-- visit specification -->
+<!ELEMENT Visit (vdate, vtime)>
+<!ELEMENT vdate (#PCDATA)>
+<!ELEMENT vtime (#PCDATA)>
+<!ATTLIST Visit tid ID #REQUIRED>
+<!ATTLIST Visit pid IDREF #REQUIRED>
+<!ATTLIST Visit vid IDREF #REQUIRED>
+]>
+
+<log>
+  <!-- pages -->
+  <Page pid = 'page1'>
+    <url>google.com</url>
+  </Page>
+  <Page pid = 'page2'>
+    <url>craigslist.org</url>
+  </Page>
+  <!-- visitors -->
+  <Visitor vid = 'visitor1'>
+    <ip>23.82.40.153</ip>
+  </Visitor>
+  <Visitor vid = 'visitor2'>
+    <ip>140.241. 27.22</ip>
+  </Visitor>
+  <Visitor vid = 'visitor3'>
+    <ip>73.240.9.178</ip>
+  </Visitor>
+  <!-- visits -->
+  <Visit tid = 'visit1' pid = 'page1' vid = 'visitor1'>
+    <vdate>"11/22/2022"</vdate>
+    <vtime>"17:03"</vtime>
+  </Visit>
+  <Visit tid = 'visit2' pid = 'page1' vid = 'visitor2'>
+    <vdate>11/23/2022</vdate>
+    <vtime>3:01</vtime>
+  </Visit>
+  <Visit tid = 'visit3' pid = 'page1' vid = 'visitor1'>
+    <vdate>11/23/2022</vdate>
+    <vtime>3:09</vtime>
+  </Visit>
+  <Visit tid = 'visit4' pid = 'page2' vid = 'visitor2'>
+    <vdate>11/24/2022</vdate>
+    <vtime>4:20</vtime>
+  </Visit>
+</log>

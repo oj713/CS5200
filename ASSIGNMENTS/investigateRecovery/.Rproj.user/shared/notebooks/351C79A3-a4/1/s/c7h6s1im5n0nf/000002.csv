@@ -1,0 +1,3 @@
+"0","SELECT Count(*) AS num_symphony_albums
+  FROM albums
+ WHERE LOWER(Title) LIKE '%symphony%'"

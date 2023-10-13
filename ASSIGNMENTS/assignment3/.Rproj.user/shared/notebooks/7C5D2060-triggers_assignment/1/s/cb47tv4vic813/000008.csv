@@ -1,0 +1,8 @@
+"0","CREATE TRIGGER logEmploymentChange 
+  AFTER UPDATE ON Author
+  FOR EACH ROW 
+  WHEN (NEW.Affiliation <> OLD.Affiliation)
+    BEGIN
+      INSERT INTO employmentChange VALUES
+      (NEW.aid, OLD.Affiliation, NEW.Affiliation, DATE('now'));
+END;"

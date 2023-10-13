@@ -1,0 +1,10 @@
+"0","/* assuming that employment change cannot happen twice within a day */
+CREATE TABLE IF NOT EXISTS employmentChange (
+  aid INTEGER NOT NULL,
+  prior_aff TEXT,
+  new_aff TEXT,
+  changeDate DATE NOT NULL,
+  CONSTRAINT aid_date_is_pk PRIMARY KEY (aid, changeDate),
+  CONSTRAINT p_aff_ref_aff FOREIGN KEY (prior_aff) REFERENCES Affiliation(atype),
+  CONSTRAINT n_aff_ref_aff FOREIGN KEY (new_aff) REFERENCES Affiliation(atype)
+)"

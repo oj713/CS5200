@@ -1,0 +1,4 @@
+"0","/* dividing by 365.25 to account for leap years */
+SELECT ROUND(AVG((JULIANDAY('now') - JULIANDAY(BirthDate))/365.25), 1)
+    AS AverageAge
+  FROM employees"

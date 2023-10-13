@@ -1,0 +1,4 @@
+"0","query <- ""SELECT * FROM airports "
+"0"," WHERE aid IN (SELECT origin FROM incidents WHERE rid IN (1, 2, 3));"""
+"0",""
+"0","dbGetQuery(mydb, query)"

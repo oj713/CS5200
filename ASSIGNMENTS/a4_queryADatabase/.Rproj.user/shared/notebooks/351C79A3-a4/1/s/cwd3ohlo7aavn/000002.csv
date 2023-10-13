@@ -1,0 +1,2 @@
+"0","SELECT t.AlbumId, t.TrackId
+  FROM ALBUMS a LEFT JOIN tracks t ON (a.AlbumId = t.AlbumId)"

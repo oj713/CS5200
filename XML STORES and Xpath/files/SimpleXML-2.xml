@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<catalog>
+   <book id="bk101" edition="3">
+      <author>
+        <surname>Gambardella</surname>
+        <given>Matthew</given>
+      </author>
+      <title>XML Developer's Guide</title>
+      <outofprint />
+      <price currency="R$">349</price>
+      <price currency="US$">29.95</price>
+      <price currency="€">34.00</price>
+   </book>
+   <book id="bk102" edition="1">
+      <author>
+        <surname>Ralls</surname>
+        <given>Kim</given></author>
+      <title>Midnight Rain</title>
+      <price currency="US$">5.95</price>
+   </book>
+</catalog>

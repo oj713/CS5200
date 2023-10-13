@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Data Warehousing</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Warehousing, OLAP, Mining</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Data Warehousing</a>
+</li>
+<li>
+  <a href="starschema.html">Star Schema</a>
+</li>
+<li>
+  <a href="datamining.html">Data Mining</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Data Warehousing</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#data-warehouses" id="toc-data-warehouses">Data
+warehouses</a>
+<ul>
+<li><a href="#subject-orientation" id="toc-subject-orientation">Subject
+orientation</a></li>
+</ul></li>
+<li><a href="#data-warehouse-architecture"
+id="toc-data-warehouse-architecture">Data Warehouse
+architecture</a></li>
+<li><a href="#oltp-vs-dss-vs-olap" id="toc-oltp-vs-dss-vs-olap">OLTP vs
+DSS vs OLAP</a></li>
+<li><a href="#benefits-for-data-warehouses"
+id="toc-benefits-for-data-warehouses">Benefits for data
+warehouses</a></li>
+<li><a href="#integration-issues"
+id="toc-integration-issues">Integration Issues</a></li>
+</ul>
+</div>
+
+<p><a href="files/datawarehousing.pdf">Textbook</a></p>
+<p>Organizations have large databases from collecting data on day-to-day
+activities, ranging from GB to TBs of data.</p>
+<ul>
+<li><strong>OLTP</strong>: online transactional processing applications
+that record and update data in such databases</li>
+</ul>
+<div id="data-warehouses" class="section level1">
+<h1>Data warehouses</h1>
+<p><em>Subject-oriented, integrated, time-variant, non-volatile
+collection of data in support of management’s decisions</em> - Bill
+Inmon</p>
+<p><strong>Data Warehouses</strong> are databases consolidating data
+from multiple sources, augmented with summary info and historical data
+over time.</p>
+<ul>
+<li>sources for warehouse can range from other databases to XML files to
+unstructured data, etc. and consolidate multiple sources (eg. marketing,
+outreach, sales)
+<ul>
+<li>contains data from most or all of organizations operational
+applications</li>
+<li>data integrated and harmonized via ETL to ensure consistent
+views</li>
+</ul></li>
+<li>primarily queried and non-volatile - do not support transaction
+processing, recovery, or concurrency control
+<ul>
+<li>no data is overwritten or deleted - only loaded, refreshed, and
+accessed.</li>
+</ul></li>
+<li>historical component allows for trend analysis (compare with
+transactional data)
+<ul>
+<li>can hold years or decades worth of data</li>
+</ul></li>
+<li><strong>OLAP</strong>: analysis of complex data from data
+warehouse</li>
+<li><strong>data mining</strong>: automated derivation of patterns,
+clusters, and association</li>
+</ul>
+<p><strong>Data Mart</strong>: Subject-specific subsets of data geared
+towards the needs of a particular user.</p>
+<ul>
+<li>improves speed and efficiency of analysis</li>
+<li>can contain derived values</li>
+</ul>
+<div id="subject-orientation" class="section level2">
+<h2>Subject orientation</h2>
+<p>A data warehouse is organized around a major subject, eg. accounts,
+products, or orders.</p>
+<p>Unlike an operational database which supports an application, the
+data is organized according to its subject.</p>
+<p>They change the perspective of the data to better enable
+analysis!</p>
+</div>
+</div>
+<div id="data-warehouse-architecture" class="section level1">
+<h1>Data Warehouse architecture</h1>
+<p><img src="files/datawarehousearchitecture.png" width="50%" style="display: block; margin: auto;" /></p>
+<p><strong>ETL</strong> - Various source databases extracted and
+transformed into required data formats for warehouse and then
+uploaded.</p>
+<p>Data warehouse can be queried directly, but usually subset into
+<strong>data marts</strong></p>
+<p>Usually very large and often spread across multiple databases, where
+summary data is stored alongside individual values.</p>
+</div>
+<div id="oltp-vs-dss-vs-olap" class="section level1">
+<h1>OLTP vs DSS vs OLAP</h1>
+<p><strong>DSS</strong>: Decision support systems, extracts high-level
+information in databases and uses that information to support decisions.
+Data warehousing, OLAP, data mining, and predictive modeling are all
+tools and techniques to build DSS.</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center"><strong>OLTP</strong></th>
+<th align="center"><strong>OLAP</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">Used online by users for specific, defined
+reasons</td>
+<td align="center">Used by managers/execs for unknown tasks</td>
+</tr>
+<tr class="even">
+<td align="center">Contains current data</td>
+<td align="center">Contains data snapshots</td>
+</tr>
+<tr class="odd">
+<td align="center">Contains unfiltered data</td>
+<td align="center">Contains filtered, converted data</td>
+</tr>
+<tr class="even">
+<td align="center">Single data source</td>
+<td align="center">Multiple data sources</td>
+</tr>
+<tr class="odd">
+<td align="center">Continuous updates</td>
+<td align="center">periodic, versioned updates</td>
+</tr>
+</tbody>
+</table>
+<p>Data warehouses are only updated periodically - eg. weekly or
+monthly.</p>
+<ul>
+<li>Redundancy is deliberate to improve access - summarized data,
+denormalized relational schemas, joins/aggregations/grouping avoided
+during retrieval</li>
+</ul>
+</div>
+<div id="benefits-for-data-warehouses" class="section level1">
+<h1>Benefits for data warehouses</h1>
+<ul>
+<li>more complete pictures for business decisions</li>
+<li>gain an advantage during competitive decision making</li>
+<li>find information otherwise non-accessible</li>
+<li>reduces costs and increase profits by automating mining</li>
+</ul>
+</div>
+<div id="integration-issues" class="section level1">
+<h1>Integration Issues</h1>
+<p>Integrating data across multiple sources creates a host of
+issues:</p>
+<ul>
+<li>category encodings and formatting</li>
+<li>field naming</li>
+<li>primary key selection</li>
+<li>duplicate data</li>
+<li>default values</li>
+<li>filtering and summarization
+<ul>
+<li>this one is tough because we don’t know what data we need - often
+better off to store everything</li>
+</ul></li>
+</ul>
+<p><strong>Backflushing</strong>: after cleaning data via ETL data
+quality issues are often resolved and copied back to operational data
+sources.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

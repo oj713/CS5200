@@ -1,0 +1,101 @@
+---
+title: "Additional XPath"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[XPath function references](https://northeastern.instructure.com/courses/123281/pages/30-min-read-a-primer-on-xpath-functions?module_item_id=7536375)
+
+```{r}
+library(XML)
+library(stringr)
+
+plants <- xmlParse("files/plants.xml")
+
+findp <- function(xpath_expr) {
+  xpathSApply(plants, xpath_expr) |> head(3)
+}
+```
+
+Find the botanical name of all plants requiring "Mostly Shady" light
+```{r}
+findp("//PLANT[LIGHT='Mostly Shady']/BOTANICAL")
+```
+
+Return only the value of price, not the external node. 
+```{r}
+findp("//PLANT/PRICE/text()")
+```
+
+Return the common name of the next to last plant. 
+
+```{r}
+findp("//PLANT[position() = last() - 1]/COMMON")
+```
+
+Return the number of plants
+```{r}
+findp("count(//PLANT)")
+```
+
+Return the common name of all plants in the family *Polemonium*
+```{r}
+findp("//PLANT[starts-with(BOTANICAL, 'Polemonium')]/COMMON")
+```
+Return the common name of all plants available in July
+
+* `substring(string, starting index, length)`
+
+```{r}
+findp("//PLANT[starts-with(AVAILABILITY, '07')]/COMMON")
+```
+
+
+```{r}
+med <- xmlParse("files/pubmed_sample.xml")
+
+findm <- function(xpath_expr) {
+  xpathSApply(med, xpath_expr) |> head(3)
+}
+```
+
+Return article title of all articles published on internet. 
+
+* Note use of '..' to move back up the tree. double slashes search for all descendants, while single looks for only direct child. 
+
+```{r}
+findm(paste0("//PubmedArticle//Article//",
+  "JournalIssue[@CitedMedium = 'Internet']/../../ArticleTitle"))
+```
+Return number of articles published in 2012. 
+
+```{r}
+findm(paste0("count(//PubmedArticle//Article//JournalIssue",
+             "[PubDate/Year = '2012'])"))
+```
+
+
+Return titles of articles published by more than 10 authors. 
+
+```{r}
+findm(paste0("//PubmedArticle//Article/", 
+             "AuthorList[count(Author) > 10]/../ArticleTitle"))
+```
+```{r}
+po <- xmlParse("files/po.xml")
+
+findpo <- function(xpath_expr) {
+  xpathSApply(po, xpath_expr) |> head(3)
+}
+```
+
+Return the total number of items purchased in the purchase order. Assume there is one purchase order. 
+
+```{r}
+findpo("sum(//PurchaseOrder/Items/Item/Quantity)")
+```
+
+

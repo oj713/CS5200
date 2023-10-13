@@ -1,0 +1,4 @@
+"0","dbWriteTable(db, ""Author"", authors_df, overwrite = TRUE)"
+"0","dbWriteTable(db, ""Genre"", genres_df, overwrite = TRUE)"
+"0","dbWriteTable(db, ""Catalog"", catalogs_df, overwrite = TRUE)"
+"0","dbWriteTable(db, ""Book"", books_df, overwrite = TRUE)"

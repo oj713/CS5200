@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Indexing in SQLite</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Indices and Storage</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Indexing Methods</a>
+</li>
+<li>
+  <a href="indexing_sqlite.html">Indexing in SQLite</a>
+</li>
+<li>
+  <a href="query_pp.html">Query Planning/Processing</a>
+</li>
+<li>
+  <a href="datastorage_disks_raid.html">Data Storage and RAID</a>
+</li>
+<li>
+  <a href="reliability_availability.html">Reliability and Availability</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Indexing in SQLite</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#creating-an-index">Creating an index</a></li>
+<li><a href="#using-an-index">Using an Index</a></li>
+<li><a href="#deleting-an-index">Deleting an Index</a></li>
+<li><a href="#listing-indexes">Listing Indexes</a></li>
+<li><a href="#considerations">Considerations</a></li>
+</ul>
+</div>
+
+<p><a href="http://artificium.us/lessons/60.dbdesign/l-60-611-indexing-sqlite/l-60-611.html">Lesson link</a></p>
+<p>Indexing can speed up data retrievals (SELECT), improve sorting (ORDER BY), and enforce uniqueness constraints (UNIQUE). Most databases automatically index the primary key – SQLite doesn’t, but MySQL does.</p>
+<p>Several data structures may be used for indexing: hashmaps and trees</p>
+<p><strong>B-trees (SQLite)</strong>:</p>
+<ul>
+<li>Self-balancing tree data structure</li>
+<li>maintains data nodes in sorted order – searches in <span class="math inline">\(O(\log _n)\)</span> time.</li>
+<li>usually &gt; 2 children per nodes</li>
+<li>best for relatively large block sorting</li>
+<li>during access operations entire index is in memory, but data remains on disk.</li>
+</ul>
+<pre class="r"><code>library(RSQLite)
+db &lt;- dbConnect(SQLite(), &quot;MediaDB.db&quot;)</code></pre>
+<div id="creating-an-index" class="section level2">
+<h2>Creating an index</h2>
+<p>Use <code>CREATE INDEX</code> to create an index.The general form:</p>
+<pre class="sql"><code>CREATE [UNIQUE] INDEX index_name [ASC|DESC] ON table_name(column_list);</code></pre>
+<ul>
+<li>critical for non-prime columns when columns are frequently in joins or searches – B-trees make equality and range searching much quicker</li>
+<li>searches on a compound key should have a compound index</li>
+<li><code>create unique index</code> detects duplicated values and is generally implemented with a hashmap/hashtable</li>
+<li>indexes are not useful for matching searches using <code>LIKE</code></li>
+<li>indexes common for <code>ORDER BY</code> – in-order traversal of B-tree results in ordered set</li>
+</ul>
+<pre class="sql"><code>CREATE INDEX custLN 
+    ON customers(LastName);</code></pre>
+</div>
+<div id="using-an-index" class="section level2">
+<h2>Using an Index</h2>
+<p>Indexes most useful when direct match search is done on an indexed column in the <code>WHERE</code> clause.</p>
+<ul>
+<li>relational databases automatically use an index when available/use improves query performance</li>
+</ul>
+<pre class="sql"><code>SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName = &#39;Johansson&#39;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>1 records</caption>
+<thead>
+<tr class="header">
+<th align="left">LastName</th>
+<th align="left">FirstName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Johansson</td>
+<td align="left">Joakim</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code>EXPLAIN QUERY PLAN</code> makes index use explicit and shows that the column is searched.</p>
+<pre class="sql"><code>EXPLAIN QUERY PLAN 
+SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName = &#39;Johansson&#39;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>1 records</caption>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="right">parent</th>
+<th align="right">notused</th>
+<th align="left">detail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">SEARCH customers USING INDEX custLN (LastName=?)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>When the index is not useful, it is not used.</p>
+<pre class="sql"><code>EXPLAIN QUERY PLAN 
+SELECT LastName, FirstName
+  FROM customers
+ WHERE LastName LIKE &#39;Johan%&#39;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>1 records</caption>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="right">parent</th>
+<th align="right">notused</th>
+<th align="left">detail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">SCAN customers</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Note</strong>: SQLite does not automatically index the primary key, but does build a hashmap to quickly determine uniqueness.</p>
+<pre class="sql"><code>EXPLAIN QUERY PLAN
+SELECT LastName, FirstName
+  FROM customers
+ WHERE CustomerId = 37</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>1 records</caption>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="right">parent</th>
+<th align="right">notused</th>
+<th align="left">detail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">SEARCH customers USING INTEGER PRIMARY KEY (rowid=?)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="deleting-an-index" class="section level2">
+<h2>Deleting an Index</h2>
+<p>Use <code>DROP INDEX</code> to delete an index. General form:</p>
+<pre class="sql"><code>DROP INDEX [IF EXISTS] index_name;</code></pre>
+<pre class="sql"><code>DROP INDEX custLN;</code></pre>
+</div>
+<div id="listing-indexes" class="section level2">
+<h2>Listing Indexes</h2>
+<p>To list all created and available indexes from a table:</p>
+<pre class="sql"><code>PRAGMA list_indexes(&#39;customers&#39;);</code></pre>
+<p>To list all indexes in a database, query the <em>sqlite_master</em> table:</p>
+<pre class="sql"><code>SELECT `type`, `name`, `tbl_name`, `sql`
+  FROM sqlite_master
+WHERE `type` = &#39;index&#39;;</code></pre>
+<div class="knitsql-table">
+<table>
+<caption>Displaying records 1 - 10</caption>
+<colgroup>
+<col width="4%" />
+<col width="26%" />
+<col width="11%" />
+<col width="57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">type</th>
+<th align="left">name</th>
+<th align="left">tbl_name</th>
+<th align="left">sql</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">index</td>
+<td align="left">sqlite_autoindex_playlist_track_1</td>
+<td align="left">playlist_track</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">index</td>
+<td align="left">IFK_AlbumArtistId</td>
+<td align="left">albums</td>
+<td align="left">CREATE INDEX [IFK_AlbumArtistId] ON “albums” ([ArtistId])</td>
+</tr>
+<tr class="odd">
+<td align="left">index</td>
+<td align="left">IFK_CustomerSupportRepId</td>
+<td align="left">customers</td>
+<td align="left">CREATE INDEX [IFK_CustomerSupportRepId] ON “customers” ([SupportRepId])</td>
+</tr>
+<tr class="even">
+<td align="left">index</td>
+<td align="left">IFK_EmployeeReportsTo</td>
+<td align="left">employees</td>
+<td align="left">CREATE INDEX [IFK_EmployeeReportsTo] ON “employees” ([ReportsTo])</td>
+</tr>
+<tr class="odd">
+<td align="left">index</td>
+<td align="left">IFK_InvoiceCustomerId</td>
+<td align="left">invoices</td>
+<td align="left">CREATE INDEX [IFK_InvoiceCustomerId] ON “invoices” ([CustomerId])</td>
+</tr>
+<tr class="even">
+<td align="left">index</td>
+<td align="left">IFK_InvoiceLineInvoiceId</td>
+<td align="left">invoice_items</td>
+<td align="left">CREATE INDEX [IFK_InvoiceLineInvoiceId] ON “invoice_items” ([InvoiceId])</td>
+</tr>
+<tr class="odd">
+<td align="left">index</td>
+<td align="left">IFK_InvoiceLineTrackId</td>
+<td align="left">invoice_items</td>
+<td align="left">CREATE INDEX [IFK_InvoiceLineTrackId] ON “invoice_items” ([TrackId])</td>
+</tr>
+<tr class="even">
+<td align="left">index</td>
+<td align="left">IFK_PlaylistTrackTrackId</td>
+<td align="left">playlist_track</td>
+<td align="left">CREATE INDEX [IFK_PlaylistTrackTrackId] ON “playlist_track” ([TrackId])</td>
+</tr>
+<tr class="odd">
+<td align="left">index</td>
+<td align="left">IFK_TrackAlbumId</td>
+<td align="left">tracks</td>
+<td align="left">CREATE INDEX [IFK_TrackAlbumId] ON “tracks” ([AlbumId])</td>
+</tr>
+<tr class="even">
+<td align="left">index</td>
+<td align="left">IFK_TrackGenreId</td>
+<td align="left">tracks</td>
+<td align="left">CREATE INDEX [IFK_TrackGenreId] ON “tracks” ([GenreId])</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="considerations" class="section level2">
+<h2>Considerations</h2>
+<ul>
+<li>searching with substring matching / <code>LIKE</code> cannot use indexes and should be avoided.</li>
+<li>when new data is inserted/updated/deleted, indexes must be rearranged. The worst case run-time behaviour of updating a B-Tree is <span class="math inline">\(O(n^2)\)</span>, reducing performance.
+<ul>
+<li>indexes should be dropped prior to bulk loading as they reduce performance. After ETL they can be created again.</li>
+</ul></li>
+<li>searching on expressions does not use indexes unless an <a href="https://www.sqlite.org/expridx.html">index on the expression</a> is created.</li>
+</ul>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

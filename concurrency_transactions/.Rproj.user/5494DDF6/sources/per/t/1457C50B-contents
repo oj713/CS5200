@@ -1,0 +1,81 @@
+---
+title: "Query Databases and Dataframes in R with SQL"
+output: 
+  html_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Omi Johnson
+
+**(20 pts) In the R Notebook, connect to the SQLite MediaDB.db database and then load, using SQL SELECT, the "invoice_items" table into a data frame called rs. Add a new column to rs for the extended price called ExtPrice that is Quantity times Price. Using R, what is the average extended price (rounded to 2 decimals)? Do not use {sql} chunks for this entire question. You must use all R code; to do the query use one of dbExecute(), dbGetQuery(), or dbSendQuery().**
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(RSQLite)
+library(sqldf)
+
+db <- dbConnect(SQLite(), "MediaDB.db")
+```
+```{r}
+rs <- dbGetQuery(db, "SELECT * FROM invoice_items")
+
+# adding new column
+rs$ExtPrice = rs$Quantity * rs$UnitPrice
+
+#finding mean and rounding 
+mean(rs$ExtPrice) |>
+  round(2)
+```
+
+**(30 pts) Using sqldf, write a SQL query against the data frame rs from the question above that finds the total amount for each invoice (i.e., the sum of the extended prices for the invoice_items in each invoice) and the number of items in the invoice. So, the result set contains rows that each have the invoice ID, the total, and the number of items.**
+
+```{r}
+totals <- sqldf("SELECT Invoiceid, SUM(ExtPrice) as totalAmount, COUNT(*) as numItems
+                   FROM rs
+                  GROUP BY InvoiceId")
+
+head(totals)
+```
+
+**(30 pts) Using R and the result from the prior question, create a scatter plot of the total number of items in an invoice (x axis) versus the total (y axis). Add proper axis labels.**
+
+```{r}
+plot(x = totals$numItems, 
+     y = totals$totalAmount,
+     xlab = "Total number of items",
+     ylab = "Total exit price")
+```
+
+**(15 pts) Write and execute some combination of R code, loops in R, sqldf, dbWriteTable(), direct SQL ALTER and SQL UPDATE statements that applies a 10% discount to the total amount for each invoice if it has more than 5 items and stores that discounted amount in a new column in the invoices table called DiscPrice. This cannot be solved fully in sqldf nor fully with just a single UPDATE. You will need to use a combination of techniques and some creativity. Any approach will be acceptable.**
+
+```{r}
+# I checked with a TA that I was supposed to be modifying the invoices database in MariaDB
+
+# Adding discounted price vector to total_invoice table 
+totals$DiscPrice <- (totals$numItems |>
+  sapply(function(x) ifelse(x > 5, .9, 1))) * totals$totalAmount 
+
+# Retrieving invoices table 
+invoices <- dbGetQuery(db, "SELECT * FROM invoices", n = -1)
+
+# using sqldf to merge the DiscPrice to Invoices
+invoices <- sqldf(
+  "SELECT i.*, t.DiscPrice 
+     FROM invoices i INNER JOIN totals t ON (i.InvoiceId = t.InvoiceId)")
+
+# overwriting original invoices table with new information
+dbWriteTable(db, "invoices", invoices, overwrite = TRUE)
+```
+
+**(5 pts) Using a separate {r} chunk show that the update in (4) executed properly by displaying a part of the table.**
+
+```{r}
+dbGetQuery(db, "SELECT InvoiceId, Total, DiscPrice FROM invoices LIMIT 10")
+```
+
+```{r}
+dbDisconnect(db)
+```

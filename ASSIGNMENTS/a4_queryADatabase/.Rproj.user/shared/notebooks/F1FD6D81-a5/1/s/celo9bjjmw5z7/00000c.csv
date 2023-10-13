@@ -1,0 +1,4 @@
+"0","plot(x = totals$numItems, "
+"0","     y = totals$totalAmount,"
+"0","     xlab = ""Total number of items"","
+"0","     ylab = ""Total exit price"")"

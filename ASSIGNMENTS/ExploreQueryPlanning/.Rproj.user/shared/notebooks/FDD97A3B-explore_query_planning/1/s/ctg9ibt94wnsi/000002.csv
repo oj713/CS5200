@@ -1,0 +1,23 @@
+"0","# MySQL connection"
+"0",""
+"0","library(RMySQL)"
+"2","Loading required package: DBI
+"
+"2","
+Attaching package: ‘RMySQL’
+
+"
+"2","The following object is masked from ‘package:RSQLite’:
+
+    isIdCurrent
+
+"
+"0","db_user <- 'root'"
+"0","db_password <- '587DJLOTL4mys'"
+"0","db_name <- 'sakila'"
+"0","db_host <- 'localhost' # AWS Host"
+"0","db_port <- 3306"
+"0",""
+"0","mysql_db <-  dbConnect(MySQL(), "
+"0","                       user = db_user, password = db_password,"
+"0","                       dbname = db_name, host = db_host, port = db_port)"

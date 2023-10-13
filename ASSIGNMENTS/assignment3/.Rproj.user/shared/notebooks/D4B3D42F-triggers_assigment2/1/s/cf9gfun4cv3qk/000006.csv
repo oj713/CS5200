@@ -1,0 +1,3 @@
+"2","Error: UNIQUE constraint failed: Authorship.aid, Authorship.mnumber
+"
+"2","Failed to execute SQL chunk"

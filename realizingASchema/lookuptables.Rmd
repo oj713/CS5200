@@ -1,0 +1,117 @@
+---
+title: "Lookup Tables"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "myDB.db")
+```
+
+**Lookup/Association tables** associate a value with other values, eg clothes sizing with measurements 
+
+* each row in lookup table is unique, making entire row a primary key
+  * generally no surrogate/synthetic key unless lookup values referenced from another table
+* used to implement enumerated values/factors
+* fixed - no manipulation
+
+## Creating and Using Lookup Tables
+
+First, create and populate the table. 
+
+```{sql connection = dbcon}
+create table if not exists sizeLookup (
+  germanSize integer not null, 
+  waist_cm integer not null,
+  length_cm integer not null,
+  us_waist_in integer not null,
+  us_inseam_in integer not null
+)
+```
+```{sql connection = dbcon}
+insert into sizeLookup values 
+  (46,81,82,31,32),
+  (52,93,86,36,34),
+  (25,93,80,36,30),
+  (110,101,93,40,36)
+```
+
+Then, to search table we can use queries.
+
+```{sql connection = dbcon}
+select us_waist_in, us_inseam_in
+  from sizeLookup
+ where germanSize = 25;
+```
+
+## Enumerated Values 
+
+Use for enumerated values is useful, especially when database does not naively support enumerations 
+
+```{sql connection = dbcon}
+create table if not exists roles (
+  rid integer not null primary key,
+  rclass text
+)
+```
+```{sql connection = dbcon}
+insert into roles values
+  (1, "E"), (2, "D"), (3, "C"), (4, "B"), (5, "A"), (6, "S");
+```
+```{sql heroes, connection = dbcon}
+create table if not exists heroes (
+  hid integer not null primary key,
+  hname text not null,
+  hrole integer not null, 
+  foreign key (hrole) references roles(rid)
+);
+```
+```{sql connection = dbcon}
+insert into heroes values 
+  (13, "Mirko", 6), 
+  (12, "Adam", 1), 
+  (11, "Jimbei", 5)
+```
+
+Query to list members and their role:
+
+```{sql connection = dbcon}
+select h.hname as 'Name', r.rclass as 'Role'
+  from heroes h inner join roles r on (h.hrole = r.rid);
+```
+
+Alternatively, can make the name of the enumeration itself if the primary key: 
+
+* eliminates need for join in queries
+
+```{sql connection = dbcon}
+create table if not exists roles (
+  rname text not null primary key
+)
+```
+
+Enumerations are also supported with constraints. For SQLite, use the `check` constraint ~ other databases may have an `enum` type. 
+
+* This prevents levels from being queried directly, therefore cannot be used to populate drop-down menus, etc.
+
+```{sql connection = dbcon}
+create table if not exists heroes (
+  hid integer not null primary key,
+  hname text not null,
+  hrole integer not null,
+  check (hrole in ('E', 'D', 'C', 'B', 'A', 'S'))
+)
+```
+
+## Benefits ##
+
+* **Storage Management**: prevent repitition of enumeration, saving storage
+* **Improved performance**: lookup tables up performance because 'join' is done with key values
+* **simple data modification**: changes to an enumerated value or conversion details only need to be made within the lookup table - no reference changes
+* **faster search**: lookup tables are generally small, making it faster to search data 
+
+```{r include = FALSE}
+file.remove("myDB.db")
+```

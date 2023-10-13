@@ -1,0 +1,18 @@
+name: "Concurrency, Transactions, and Recovery"
+output_dir: 'docs'
+navbar:
+  title: "Concurrency, Transactions, and Recovery"
+  left:
+    - text: "Transactions in SQLite"
+      href: index.html
+    - text: "Transactions Cont."
+      href: transactions.html
+    - text: "Concurrency"
+      href: concurrency.html
+    - text: "Recovery"
+      href: recovery.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

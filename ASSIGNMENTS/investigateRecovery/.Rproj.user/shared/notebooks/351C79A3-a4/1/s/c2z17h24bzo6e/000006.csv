@@ -1,0 +1,4 @@
+"0","SELECT LastName, City, State
+  FROM purchasing_customers
+ WHERE LOWER(Country) LIKE '%brazil%'
+ ORDER BY LastName"

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Database Recovery</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Concurrency, Transactions, and Recovery</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Transactions in SQLite</a>
+</li>
+<li>
+  <a href="transactions.html">Transactions Cont.</a>
+</li>
+<li>
+  <a href="concurrency.html">Concurrency</a>
+</li>
+<li>
+  <a href="recovery.html">Recovery</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Database Recovery</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#types-of-failures" id="toc-types-of-failures">Types of
+failures</a></li>
+<li><a href="#caching-disk-pages" id="toc-caching-disk-pages">Caching
+disk pages</a></li>
+<li><a href="#recovery-steps-during-normal-execution"
+id="toc-recovery-steps-during-normal-execution">Recovery steps during
+Normal execution</a>
+<ul>
+<li><a href="#system-log" id="toc-system-log">System log</a></li>
+<li><a href="#checkpointing"
+id="toc-checkpointing">Checkpointing</a></li>
+</ul></li>
+<li><a href="#recovery-techniques-for-serial-transactions"
+id="toc-recovery-techniques-for-serial-transactions">Recovery techniques
+for serial transactions</a>
+<ul>
+<li><a href="#log-based-recovery" id="toc-log-based-recovery">Log-based
+recovery</a></li>
+<li><a href="#shadow-paging" id="toc-shadow-paging">Shadow
+paging</a></li>
+</ul></li>
+<li><a href="#recovery-for-concurrent-transactions"
+id="toc-recovery-for-concurrent-transactions">Recovery for concurrent
+transactions</a></li>
+<li><a href="#aries-recovery-algorithm"
+id="toc-aries-recovery-algorithm">ARIES Recovery Algorithm</a>
+<ul>
+<li><a href="#stored-elements" id="toc-stored-elements">Stored
+elements</a></li>
+<li><a href="#post-crash-restart-phases"
+id="toc-post-crash-restart-phases">Post-crash restart phases</a></li>
+<li><a href="#advantages" id="toc-advantages">Advantages</a></li>
+</ul></li>
+<li><a href="#recovery-from-catastrophic-failures"
+id="toc-recovery-from-catastrophic-failures">Recovery from Catastrophic
+failures</a></li>
+</ul>
+</div>
+
+<p><a href="recovery_txt.pdf">recovery chapter</a></p>
+<p>The <strong>recovery manager</strong> of a dbms performs recovery
+operations.</p>
+<ul>
+<li>must preserve <em>atomicity</em> and <em>durability</em> by undoing
+uncommited transactions and ensuring commited changes survive
+failure</li>
+<li>tracks all changes applied to data</li>
+<li>must provide <strong>high availability</strong></li>
+</ul>
+<div id="types-of-failures" class="section level2">
+<h2>Types of failures</h2>
+<p>Transaction and system crash failures are non-catastrophic as no
+non-volatile storage is lost.</p>
+<p><strong>Logical error</strong>: transactions fail due to logical
+error, eg. incorrect input, integer overflow, etc.</p>
+<p><strong>System error</strong>: An undesirable system state, eg.
+deadlock, incorrect synchronization, etc. can stop normal execution</p>
+<p><strong>Computer failure (system crash)</strong>: hardware failure.
+Assumed to not affect contents of non-volatile storage media eg. disks
+(<em>fail-stop assumption</em>).</p>
+<p><strong>Disk/Media failure</strong>: loss of data in some disk blocks
+due to disk read/write crash, power disruption</p>
+<p><strong>Physical problems and environment disasters</strong>: theft,
+fire, sabotage, floods, earthquakes, etc.</p>
+</div>
+<div id="caching-disk-pages" class="section level2">
+<h2>Caching disk pages</h2>
+<p>When transactions update database, disk pages/blocks containing data
+items are cached into main memory/buffer and modified there before being
+written back to disk. <strong>Cache directory</strong> is maintained to
+keep track of data items present in buffers.</p>
+<ul>
+<li>when operations must be performed, cache directory searched to see
+if disk page resides in cache</li>
+<li>modified data copied back to disk using either <strong>in place
+updating</strong>, where updates are written back to original location,
+or <strong>shadow paging</strong>, where multiple copies are maintained
+on the disk.</li>
+</ul>
+<p>DBMS recovery terminology uses some terms to specify when modified
+page can be written back to database on disk. A steal/no-force approach
+is most desirable as it provides most freedom to cache manager when
+selecting replacement pages and scheduling writes.</p>
+<ul>
+<li><strong>Steal/No-Steal</strong>: updated cache page can/cannot be
+written to disk before the transaction commits.</li>
+<li><strong>force/no-force</strong>: all updated cache pages
+immediately/not immediately written to disk after committing.</li>
+</ul>
+</div>
+<div id="recovery-steps-during-normal-execution" class="section level2">
+<h2>Recovery steps during Normal execution</h2>
+<p>When DBMS restarted after crash, control given to recovery manager
+which must bring database to consistent state. In order to succeed,
+recovery manager maintains <em>system log</em> of all modifications to
+database and stores on <strong>stable storage</strong> guaranteed to
+survive failures, eg. by storing on several non-volatile storage
+devices.</p>
+<p>Work involved in recovery depends on number of changes made my
+committed transactions that haven’t written to disk. DBMS periodically
+force-writes all modified buffer pages during normal execution.</p>
+<div id="system-log" class="section level3">
+<h3>System log</h3>
+<p>Sequence of <strong>log records</strong> containing essential data
+for each transaction:</p>
+<ul>
+<li><strong>Start record</strong> <code>[T_i, start]</code> indicates a
+transaction as started</li>
+<li><strong>update log record</strong> <code>[T_i, X, V_o, V_n]</code>
+indicates that transaction performed update on X having old value and
+new value
+<ul>
+<li>maintains UNDO-type log entry and REDO-type log entry, containing
+before/after image of data item</li>
+</ul></li>
+<li><strong>read record</strong> <code>[T_i, X]</code> - only required
+to determine necessity of cascading rollback. In practice, cascading
+rollback is entirely avoided and read operations not required.</li>
+<li><strong>commit record</strong> <code>[T_i, commit]</code></li>
+<li><strong>abort record</strong> <code>[T_i, abort]</code></li>
+</ul>
+<p><strong>Write-ahead logging</strong>: necessary to force-write all
+log records to stable storage <em>prior</em> to making changes to
+database</p>
+<ul>
+<li>transaction not allowed to update data item until all UNDO-type log
+records have been force-written to disk</li>
+<li>transaction cannot commit until REDO/UNDO have been force-written to
+disk</li>
+<li>only required for in-place updating – in shadowing, since both BFIM
+and AFIM on disk recovery log not necessary</li>
+</ul>
+<p><strong>Log-record buffering</strong>: log records are typically
+collected in the log buffer and copied to stable storage at once rather
+than individually.</p>
+</div>
+<div id="checkpointing" class="section level3">
+<h3>Checkpointing</h3>
+<p>When system restarts post-failure, log is scanned to determine
+transactions that must be redone, undone.</p>
+<ul>
+<li>time-consuming</li>
+<li>committed transactions that wrote to database must be redone,
+lengthening recovery</li>
+</ul>
+<p><strong>Checkpoints</strong>: periodically written into the log to
+reduce recovery time. Transactions committed before checkpoint time do
+not need to be considered during recovery process – reduces work
+required during recovery. When a checkpoint is taken:</p>
+<ol style="list-style-type: decimal">
+<li>execution of current transactions suspended</li>
+<li>all log records in main memory written to SS</li>
+<li>all modded buffer blocks force-written to disk</li>
+<li>[checkpoint] record written to log SS</li>
+<li>transaction execution resumed</li>
+</ol>
+<p><strong>fuzzy checkpointing</strong> writes checkpoint before buffer
+blocks – allows transactions to run during potentially long buffer block
+writing, although record of prior checkpoint must be maintained</p>
+</div>
+</div>
+<div id="recovery-techniques-for-serial-transactions"
+class="section level2">
+<h2>Recovery techniques for serial transactions</h2>
+<p>Two primary techniques: log-based recovery techniques and shadow
+paging.</p>
+<div id="log-based-recovery" class="section level3">
+<h3>Log-based recovery</h3>
+<p>maintains transaction logs to keep track of update operations.</p>
+<p><em>undo</em> and <em>redo</em> are applied with help of log on last
+consistent state of database. Undo reverses changes made by uncommitted
+transaction, while redo reapples changes of committed transaction.</p>
+<ul>
+<li>undo and redo may also fail – therefore they must be
+<strong>idempotent</strong>, eg. executing operations several times must
+be equivalent to executing once.</li>
+</ul>
+<p>There are two types of updating techniques:</p>
+<ul>
+<li><strong>deferred update</strong> technique – transaction not allowed
+to update database on disk until transaction enters partially committed
+state
+<ul>
+<li>no undos required, and log records only maintain AFIM</li>
+<li>no-steal/no-force</li>
+</ul></li>
+<li><strong>immediate update</strong> technique – as soon as data item
+modified in cache, disk copy uploaded.
+<ul>
+<li>no redos required - steal/force approach</li>
+<li>only before-image maintained</li>
+<li>possibility that transactions commit before all changes written to
+database = steal/no-force</li>
+</ul></li>
+</ul>
+</div>
+<div id="shadow-paging" class="section level3">
+<h3>Shadow paging</h3>
+<p>before image and after image maintained on disk. Does not require log
+when only one transaction active at a time.</p>
+<p>Shadow paging considers database to be made of fixed-size units
+called <strong>pages</strong>, mapped to physical blocks of storage by
+using <strong>page table</strong>.</p>
+<ul>
+<li>A <strong>current page table</strong> points to most recent db
+pages, and <strong>shadow page table</strong> contains prior version of
+current page table.</li>
+<li>In case of failure, shadow page table used to recover database state
+prior to transaction.</li>
+<li>no-steal/force approach</li>
+</ul>
+<pre class="r"><code>knitr::include_graphics(&quot;imgs/shadowpaging.png&quot;)</code></pre>
+<p><img src="imgs/shadowpaging.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>Disadvantages:</p>
+<ul>
+<li><strong>data fragmentation</strong>; updated database pages change
+location</li>
+<li><strong>garbage collection</strong>: when transactions commit,
+database pages containing old version are garbage and its necessary to
+find garbage pages and add to list of free pages.</li>
+<li><strong>harder to extend</strong> for concurrency</li>
+</ul>
+</div>
+</div>
+<div id="recovery-for-concurrent-transactions" class="section level2">
+<h2>Recovery for concurrent transactions</h2>
+<p>Regardless of transaction #, a single log is maintained. IN general,
+higher concurrency means lengthier recovery.</p>
+<p><strong>Active list/commit list</strong>: lists of active
+transactions and committed transactions since last checkpoint.</p>
+<ul>
+<li>during UNDO/REDO recovery, write operations of transactions in
+commit list are redone while write operations in active list are
+undone.</li>
+<li>NO-UNDO/REDO and UNDO/NO-REDO techniques result in the
+active/committed transactions being ignored.</li>
+</ul>
+</div>
+<div id="aries-recovery-algorithm" class="section level2">
+<h2>ARIES Recovery Algorithm</h2>
+<p><strong>Algorithm for Recovery and Isolation Exploiting Semantics
+(ARIES)</strong> is a widely used recovery algorithm using a
+steal/no-force approach (aka UNDO/REDO technique). Three main
+principles:</p>
+<ul>
+<li><strong>write ahead logging</strong> - log records written before db
+changes</li>
+<li><strong>repeating history during redo</strong> - ARIES retraces
+actions of db prior to crash to bring DB to state existing at time of
+crash, then undos actions of uncommitted transactions</li>
+<li><strong>logging changes during undo</strong>: separate log
+maintained while undoing transaction – ensures that undo operations not
+repeated incase failure occurs during recovery itself</li>
+</ul>
+<div id="stored-elements" class="section level3">
+<h3>Stored elements</h3>
+<p>Log records are assigned a unique id called <strong>log sequence
+number (LSN)</strong>, indicating address of log record on disk.</p>
+<ul>
+<li>logs are split into sequential log files, each assigned file number.
+When log file grows beyond limit, new log file created.</li>
+<li>each data page has <strong>pageLSN</strong> field set to LSN of log
+record corresponding to last update. during redo, log records with LSN
+&lt;= page LSN of page shouldn’t be executed as actions are already
+reflected in database.</li>
+<li>set of log records for transaction stored as linked list with fields
+such as prevLSN, transaction ID, and type</li>
+</ul>
+<p><strong>Transaction table</strong> and <strong>dirty page
+table</strong> contain record for each active transaction and each dirty
+page in the buffer, respectively. They both store the LSN of the most
+recent log record for the transaction/dirty page – for dirty page, this
+LSN is the earliest log record that might have to be redone for the
+page.</p>
+<p><strong>Compensation log record (CLR)</strong> maintains records
+actions taken during rollback of an update operation. Maintains
+UndoNextLSN containing LSN of log record that must next be undone.</p>
+<ul>
+<li>unique from update log records because CLRs describe already-done
+actions and won’t need to be undone again.</li>
+<li>number of CLRs written during undo = # update log records for
+transactions not committed at time of crash</li>
+</ul>
+<p><strong>Log tail</strong>: the most recent portion of log, written to
+main memory. Periodically force-written to SS, and records updating
+pages, committing transactions, aborting transactions, undoing updates,
+and ending transactions.</p>
+<p><strong>Checkpoints</strong> are maintained by writing a
+begin_checkpoint and end_checkpoint record in the log. LSN of
+begin_checkpoint is written to file accessed during recovery to find
+last checkpoint info. when end_checkpoint records are written, contents
+of transaction/dirty page table appended to the end of the log.</p>
+<ul>
+<li>fuzzy checkpointing is used</li>
+<li>contents of modded cache buffers don’t need to be flushed to disk –
+transaction table and dirty page table handle it</li>
+</ul>
+</div>
+<div id="post-crash-restart-phases" class="section level3">
+<h3>Post-crash restart phases</h3>
+<p><strong>Analysis Phase</strong></p>
+<ul>
+<li>starts from begin_checkpoint record until end of log</li>
+<li>when end_checkpoint encountered, transaction/dirty page table are
+accessed and reconstructed</li>
+<li>by end of analysis phase, necessary info for redo and undo phase has
+been compiled in transaction and dirty page table</li>
+</ul>
+<p><strong>Redo phase</strong>: reapplies updates from log to
+database.</p>
+<ul>
+<li>applied to not only committed transactions – starting point is
+determined by finding smallest LSN in dirty page table</li>
+</ul>
+<p><strong>Undo phase</strong>: rolls back all uncommitted
+transactions</p>
+<ul>
+<li>backward scan performed, all undo-list transactions rolled back. CLR
+written for each undo action</li>
+</ul>
+</div>
+<div id="advantages" class="section level3">
+<h3>Advantages</h3>
+<ul>
+<li>simple and flexible to implement</li>
+<li>can support multigranularity concurrency control</li>
+<li>reduces logging overhead, overheads of checkpoints, and recovery
+time</li>
+</ul>
+</div>
+</div>
+<div id="recovery-from-catastrophic-failures" class="section level2">
+<h2>Recovery from Catastrophic failures</h2>
+<p>The main technique to handle catastrophic failures is
+<strong>database backup/dump</strong> – the entire contents of database
+are copied onto cheap storage materials.</p>
+<p>To execute database backup:</p>
+<ul>
+<li>execution of active transactions suspended</li>
+<li>log records in main memory written to SS</li>
+<li>modded buffer blocks force-written to disk</li>
+<li>contents of database copied to stable storage</li>
+<li>[dump] record written to log on stable storage</li>
+<li>execution of suspended transactions resumed</li>
+</ul>
+<p>Similar to steps used for checkpoints – also similar <strong>fuzzy
+dump</strong> process used.</p>
+<p>System log smaller than db, so backup of log records done more often
+than full database backup. System log restores transactions since last
+backup.</p>
+<p>Environmental disasters: Backup of db taken onto SS at a remote site
+used to recover lost data: <strong>remote backup</strong>.</p>
+<ul>
+<li>primary site = site of transaction processing. secondary site = site
+of remote backup.</li>
+<li>when primary fails, remote site takes over processing after
+performing recovery using most recent backup and log records from
+primary site</li>
+</ul>
+<p>Recovery of a system from catastrophic failures</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

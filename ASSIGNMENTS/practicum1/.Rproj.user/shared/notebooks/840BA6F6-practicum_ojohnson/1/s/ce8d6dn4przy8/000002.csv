@@ -1,0 +1,2 @@
+"0","birdstrikes <- readr::read_csv(""BirdStrikesData-V2.csv"", "
+"0","                               col_types = readr::cols())"

@@ -1,0 +1,8 @@
+"0","/* Creating Authorship junction Table */
+CREATE TABLE Authorship (
+  aid INTEGER NOT NULL,
+  mnumber TEXT NOT NULL, 
+  CONSTRAINT all_is_pk PRIMARY KEY (aid, mnumber),
+  CONSTRAINT aid_fk_au FOREIGN KEY (aid) REFERENCES Author(aid),
+  CONSTRAINT mnum_fk_af FOREIGN KEY (mnumber) REFERENCES Module(mnumber)
+)"

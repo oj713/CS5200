@@ -1,0 +1,3 @@
+"0","SELECT genre, COUNT(*) AS numBooks, AVG(price) AS avgPrice
+  FROM Book
+ GROUP BY genre"

@@ -1,0 +1,5 @@
+"0","CREATE VIEW IF NOT EXISTS purchasing_customers AS 
+SELECT *
+  FROM customers
+ WHERE CustomerId IN (SELECT DISTINCT CustomerId
+                        FROM invoices);"

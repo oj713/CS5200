@@ -1,0 +1,97 @@
+---
+title: "MySQL Stored Procedure"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Tutorial 1](https://www.mysqltutorial.org/mysql-stored-procedure-tutorial.aspx) : [Tutorial 2](https://www.w3resource.com/mysql/mysql-procedure.php)
+
+## Intro
+
+A stored procedure is a segment of declarative SQL statements inside MySQL Server, similar to a method.
+
+* declare a procedure using `create procedure` and execute it using `call`. Use `drop procedure` to remove it
+
+```{sql eval = FALSE}
+delimiter //
+create procedure getCustomers()
+begin
+  select name, city
+    from customers
+   order by name;
+end//
+delimiter ;
+```
+```{sql eval = FALSE}
+call getCustomers()
+```
+
+* invoking the same procedure prevents the need to recompile
+* stored procedures can have parameters and control flow statements, eg. `if`, `case`, `loop`. 
+* stored procedures can call other stored procedures
+
+## Advantages
+
+* **reduce network traffic**: don't have to send whole query, just procedure name
+* **centralize business logic**: implement business logic reusable by multiple applications
+* **Increase security**: dba can grant procedure privileges without access to underlying tables
+
+## Disadvantages
+
+* **Resource usages**: too many procedures increase memory usage 
+* **Troubleshooting**: hard to debug ~ no facilities to debug in MySQL compared to other db's like Oracle
+* **Maintenances**: requires specialized skills that could lead to problems with development and maintenance
+
+## Variables 
+
+To declare a variable inside a stored procedure, use `declare`
+
+* can declare multiple variables with same type within one statement
+* variables declared with an @ are session variables and available til the session ends - otherwise scope is within end statement.
+
+```{sql eval = FALSE}
+declare variable_name datatype(size) [default default_value];
+```
+
+To assign variables, use `SET`, or `SELECT INTO` in the case of result queries
+
+```{sql eval = FALSE}
+SET variable_name = value;
+```
+
+```{sql eval = FALSE}
+SELECT COUNT(*)
+  INTO productCount
+  FROM products;
+```
+
+## Parameters
+
+Parameters for a stored procedures have three modes: `IN`, `OUT`, `INOUT`. 
+
+* `IN`: default
+  * Calling program must pass argument to procedure. 
+  * protected -- original value unchanged
+* `OUT`
+  * value can be changed inside stored procedure, value passed back to calling program
+  * stored procedure cannot access initial value
+* `INOUT` parameter may pass argument, stored procedure can modify value and pass new value back. 
+
+To define, specify parameters within `create procedure`
+
+```{sql eval = FALSE}
+[IN | OUT | INOUT] parameter_name datatype[(length)]
+```
+
+
+
+
+
+
+
+
+
+

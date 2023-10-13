@@ -1,0 +1,63 @@
+---
+title: "Assignment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Consider the relational schema below:
+
+```{sql, eval = FALSE}
+Students(sid: integer, sname: string, major: string) 
+Courses(cid: integer, cname: string, hours: integer) 
+Enrollment(sid: integer, cid: integer, grade: real)
+```
+
+### Q1
+
+Write a **relational algebra expression** that satisfies this query: Find the distinct names of all students that take more than three courses and do not major in "Philosophy".
+
+```{sql eval = FALSE}
+SELECT sname 
+  FROM Students
+ WHERE major NOT "Philosophy"
+   AND sid %in% (SELECT sid 
+                   FROM Enrollment 
+                  GROUP BY sid
+                 HAVING COUNT(*) > 3)
+```
+
+
+$$\rho_{G(sid, numCourses)}(_{sid}\mathfrak{F}_{COUNT}(Enrollment))$$
+$$\rho_{S}(\pi_{sid}(\sigma_{numCourses > 3}(G)) \Join_{sid} Students)$$
+$$\pi_{sname}(\sigma_{major \neq "Philosophy"}(S))$$
+
+### Q2
+
+Write a **tuple relational calculus** expression that satisfies this query: Find the distinct names of all students who major in either "Math" or "Economics" who score less than 60% in either course 91.574 or in course 14.501 (using cid). 
+
+$$\{s.sname: Students(s) \land (((s.major = "Math") \lor (s.major = "Economics"))$$ 
+$$\land (\exists c)(Courses(c) \land ((cid = "91.574") \lor (cid = "14.501")))$$
+$$\land (\exists e)(Enrollment(e) \land (e.cid = c.cid) \land (e.sid = s.sid) \land (e.grade < 60)))\}$$
+
+### Q3 
+
+Consider the relational schema below:
+
+```{sql eval = FALSE}
+Students(sid: integer, sname: string, degree: string, gpa: real) 
+College(cid: integer, cname: string) 
+Enrollment(sid: integer, cid: integer, onCoop: boolean)
+```
+
+Write a **relational algebra expression** that satisfies this query: Find the total number of all students in the college "Khoury" who have a GPA below 3.0 and are not on coop.
+
+$$\rho_K(\sigma_{((cname = "Khoury") \land \lnot onCoop)}(Enrollment \Join_{cid} College))$$
+
+$$\rho_S(\sigma_{gpa < 3.0}(K \Join_{sid} Students))$$
+
+$$\pi_{n}(\mathfrak{F}_{COUNT}(S))$$
+
+

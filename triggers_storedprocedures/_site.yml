@@ -1,0 +1,16 @@
+name: "Triggers and Stored Procedures"
+output_dir: 'docs'
+navbar:
+  title: "Triggers and Stored Procedures"
+  left:
+    - text: "Triggers: SQLite"
+      href: index.html
+    - text: "Triggers: MySQL"
+      href: mysqltriggers.html
+    - text: "Stored Procedures"
+      href: stored_procedures.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    css: stylesheet.css

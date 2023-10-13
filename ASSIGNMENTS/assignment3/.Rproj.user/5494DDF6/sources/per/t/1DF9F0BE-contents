@@ -1,0 +1,115 @@
+---
+title: "Assignment 3 - Omi Johnson"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Setup
+
+```{r initialization}
+# Initialization
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), "OJohnson_db.db")
+```
+
+```{sql connection=dbcon}
+/* Enabling foreign key checking */
+PRAGMA foreign_keys = ON
+```
+
+### Creating Module 
+
+Please note that the `number` attribute in the original schema was renamed to `mnumber` to avoid overlap with a reserved keyword. 
+
+```{sql connection = dbcon}
+/* Creating Module Table */
+CREATE TABLE Module (
+  mnumber TEXT NOT NULL, 
+  title TEXT NOT NULL, 
+  lengthInMin INTEGER NOT NULL,
+  CONSTRAINT num_is_pk PRIMARY KEY (mnumber)
+)
+```
+
+### Creating Author 
+
+The affiliation list for `Author` is extensible because you can insert additional values into the lookup table. 
+
+```{sql connection = dbcon}
+/* Creating lookup table for author affiliation -
+  choice to use name itself as primary key was deliberate choice to 
+  improve clarity and ease of information access.
+*/
+CREATE TABLE Affiliation (
+  atype TEXT NOT NULL, 
+  CONSTRAINT at_is_pk PRIMARY KEY (atype)
+);
+```
+
+```{sql connection = dbcon}
+/* Creating Author Table */
+CREATE TABLE Author (
+  aid INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL, 
+  affiliation TEXT NOT NULL,
+  CONSTRAINT aid_is_pk PRIMARY KEY (aid),
+  CONSTRAINT aff_fk_aff FOREIGN KEY (affiliation) REFERENCES Affiliation(atype)
+);
+```
+
+### Creating Author-Module Junction
+
+```{sql connection = dbcon}
+/* Creating Authorship junction Table */
+CREATE TABLE Authorship (
+  aid INTEGER NOT NULL,
+  mnumber TEXT NOT NULL, 
+  CONSTRAINT all_is_pk PRIMARY KEY (aid, mnumber),
+  CONSTRAINT aid_fk_au FOREIGN KEY (aid) REFERENCES Author(aid),
+  CONSTRAINT mnum_fk_af FOREIGN KEY (mnumber) REFERENCES Module(mnumber)
+)
+```
+
+### Example Insertions
+
+```{sql connection=dbcon}
+INSERT INTO Affiliation (atype) VALUES
+  ("PT"), ("FT"), ("Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Author (aid, name, email, affiliation) VALUES
+  (14, "John", "john@email.com", "FT"),
+  (15, "Ash", "ash@email.com", "PT"),
+  (16, "Doe", "doe@email.com", "PT"),
+  (17, "Diane", "diane@email.com", "Contract");
+```
+```{sql connection=dbcon}
+INSERT INTO Module (mnumber, title, lengthInMin) VALUES
+  ("01", "Dogs in Nature", 12),
+  ("02", "Fall leaves", 7),
+  ("03", "Party planning", 90);
+```
+```{sql connection=dbcon}
+INSERT INTO Authorship (aid, mnumber) VALUES
+  (14, "01"),
+  (14, "02"),
+  (17, "03"),
+  (15, "02");
+```
+
+### Disconnecting 
+
+```{r close}
+# disconnecting from database
+dbDisconnect(dbcon)
+```
+```{r eval = FALSE}
+# disconnecting from database
+file.remove("OJohnson_db.db")
+```

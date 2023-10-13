@@ -1,0 +1,11 @@
+"0","file.remove(""committeeDB.sqlite"")
+"
+"2","Warning in file.remove(""committeeDB.sqlite"") :"
+"2","
+ "
+"2"," cannot remove file 'committeeDB.sqlite', reason 'No such file or directory'
+"
+"1","[1]"
+"1"," FALSE"
+"1","
+"

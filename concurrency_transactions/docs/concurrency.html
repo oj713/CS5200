@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Concurrency Control Techniques</title>
+
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="stylesheet.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Concurrency, Transactions, and Recovery</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Transactions in SQLite</a>
+</li>
+<li>
+  <a href="transactions.html">Transactions Cont.</a>
+</li>
+<li>
+  <a href="concurrency.html">Concurrency</a>
+</li>
+<li>
+  <a href="recovery.html">Recovery</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Concurrency Control Techniques</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#locking" id="toc-locking">Locking</a>
+<ul>
+<li><a href="#implementing-locking"
+id="toc-implementing-locking">Implementing Locking</a></li>
+<li><a href="#lock-based-techniques" id="toc-lock-based-techniques">Lock
+based techniques</a></li>
+<li><a href="#specialized-locking-techniques"
+id="toc-specialized-locking-techniques">Specialized Locking
+Techniques</a></li>
+<li><a href="#multiple-granularity-locking"
+id="toc-multiple-granularity-locking">Multiple-Granularity
+Locking</a></li>
+<li><a href="#performance-of-locking"
+id="toc-performance-of-locking">Performance of Locking</a></li>
+</ul></li>
+<li><a href="#timestamp-based-technique"
+id="toc-timestamp-based-technique">Timestamp-based technique</a>
+<ul>
+<li><a href="#timestamp-ordering-techniques"
+id="toc-timestamp-ordering-techniques">Timestamp ordering
+techniques</a></li>
+</ul></li>
+<li><a href="#optimisticvalidation-technique"
+id="toc-optimisticvalidation-technique">Optimistic/Validation
+Technique</a></li>
+<li><a href="#multiversion-technique"
+id="toc-multiversion-technique">Multiversion Technique</a>
+<ul>
+<li><a href="#multiversion-on-timestamp-ordering"
+id="toc-multiversion-on-timestamp-ordering">Multiversion on Timestamp
+ordering</a></li>
+<li><a href="#multiversion-two-phase-locking"
+id="toc-multiversion-two-phase-locking">Multiversion Two-Phase
+Locking</a></li>
+</ul></li>
+<li><a href="#handling-deadlock" id="toc-handling-deadlock">Handling
+Deadlock</a>
+<ul>
+<li><a href="#deadlock-detection" id="toc-deadlock-detection">Deadlock
+detection</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p><a href="concurrency_txt.pdf">Textbook chapter</a></p>
+<p>*The need of concurrency control techniques</p>
+<p><strong>concurrency control techniques</strong> control interactions
+among current transactions s.t. integrity is conserved by avoiding
+interference.</p>
+<ul>
+<li>ensure serializability order</li>
+<li>types: locking, timestamp-based, optimistic, multiversion</li>
+</ul>
+<div id="locking" class="section level2">
+<h2>Locking</h2>
+<p><strong>lock</strong>: variable associated with each data item
+indicating whether a read/write is allowed. Acquiring the lock by
+modifying its value is <strong>locking</strong>.</p>
+<ul>
+<li><strong>exclusive lock</strong> – provides transaction exclusive
+control on data item</li>
+<li><strong>shared lock</strong> – acquired during read-only operations,
+where multiple transactions can acquire shared lock at a time.</li>
+</ul>
+<div id="implementing-locking" class="section level3">
+<h3>Implementing Locking</h3>
+<p>A lock is a control block containing information about the nature of
+the locked data and the id of the transaction with the lock.</p>
+<p><strong>lock manager</strong>: dbms subsystem handling
+locking/unlocking the data.</p>
+<ul>
+<li>Receives lock requests from transactions and replies with lock grant
+message or rollback, also receives and accepts unlock requests</li>
+<li>Implements priority technique such that there’s no
+<strong>starvation</strong> of transactions, <em>e.g.</em> a transaction
+waits indefinitely for an exclusive lock while shared locks are
+continuously used.</li>
+<li>lock manager maintains a <strong>lock table</strong> or hash table
+with information on transaction requests</li>
+</ul>
+</div>
+<div id="lock-based-techniques" class="section level3">
+<h3>Lock based techniques</h3>
+<p>Transactions may release lock immediately after final access of a
+data item, but this may not always be desirable with interleaved
+execution.</p>
+<p><strong>Deadlock</strong> – when all transactions in simultaneous
+wait state as each is waiting for release of data items held by one of
+the others. More desirable than inconsistent state.</p>
+<p><strong>Two phase locking</strong>: each transaction divided into a
+<em>growing</em> phase, where it acquires all needed locks, and a
+<em>shrinking</em> phase where it releases. * lower degree of
+concurrency, but forces serializable schedules * rollback and deadlock
+are still possible * <strong>strict two-phase locking</strong>:
+transaction does not release any exclusive locks until commit/abort.
+prevents cascading rollback</p>
+<p><strong>Lock Conversion</strong>: transaction changes lock from one
+mode to another on existing held lock. Allows for more concurrency.</p>
+<p><strong>Graph Based Locking</strong>: Used when access order is known
+in advance. * directed, acyclic <strong>database graph</strong> is
+formed with data items as nodes and edges denote the need for access
+prior to another data item. * locks can only be placed if the
+transaction has locked its parent. * ensures conflict serializability
+and deadlock freedom * recoverability/cascadelessness not ensured *
+transaction may have to lock data items it doesn’t need to access</p>
+</div>
+<div id="specialized-locking-techniques" class="section level3">
+<h3>Specialized Locking Techniques</h3>
+<p><strong>Predicate locking</strong>: all tuples, existing or future,
+that satisfy an arbitrary predicate are locked * prevents
+<strong>phantom tuples</strong>, e.g. failing to consider new items *
+expensive!</p>
+<p><strong>Index locking</strong>: any transaction inserting a tuple
+with satisfying a predicate must insert data entry into an index
+dependent on outside locks.</p>
+<p><strong>Concurrency in tree-structured indexes</strong>: * two-phase
+locking results in low concurrency, as index searching starts at the
+root * <em>crabbing</em>: releasing lock on parent, acquiring child, so
+on. Possibility of deadlock * <em>B-link tree</em></p>
+</div>
+<div id="multiple-granularity-locking" class="section level3">
+<h3>Multiple-Granularity Locking</h3>
+<ul>
+<li><strong>locking granularity</strong> - size of locked data item.
+course = large, eg. table/database, fine = small eg. tuple/attribute.
+<ul>
+<li>course granularity has less overhead and less concurrency</li>
+</ul></li>
+<li>Database provides range of granularities for locking to satisfy
+dissimilar requests.</li>
+<li>long transactions use coarse granularity, short transactions use
+fine granularity to optimize concurrency/overhead tradeoff</li>
+<li><strong>lock escalation</strong>: transaction starts by locking at
+fine g and works up to coarse as needed</li>
+</ul>
+<pre class="r"><code>knitr::include_graphics(&quot;imgs/granularity_tree.png&quot;)</code></pre>
+<p><img src="imgs/granularity_tree.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>One concern is that in a multiple-granularity tree, excessive
+traversal up and down the node to determine ability to place locks at
+different tiers requires excessive overhead.</p>
+<p><strong>Intention lock</strong>: A transaction intends to explicitly
+lock a lower level of the tree.</p>
+<ul>
+<li>No transaction can acquire a lock on a node before acquiring
+intention-mode lock on all ancestor nodes.</li>
+<li><em>intention-shared (IS) mode</em> and <em>intention- exclusive
+(IX) mode</em> are associated with shared/exclusive.</li>
+</ul>
+<p>Lower level must be explicitly locked in mode requested by
+transaction. However, this isn’t great if transaction needs to access a
+small portion of tree. <strong>shared and intention-exclusive (SIX)
+mode</strong> explcitily locks sub tree in shared mode, and lower level
+in exclusive node.</p>
+<pre class="r"><code>knitr::include_graphics(&quot;imgs/lock_heirarchy.png&quot;)</code></pre>
+<p><img src="imgs/lock_heirarchy.png" width="50%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>knitr::include_graphics(&quot;imgs/lock_table.png&quot;)</code></pre>
+<p><img src="imgs/lock_table.png" width="50%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="performance-of-locking" class="section level3">
+<h3>Performance of Locking</h3>
+<p>Locking performance is governed by resource contention and data
+contention.</p>
+<p><strong>Resource contention</strong> - memory, computing time, etc.
+determines rate at which transaction executes between lock requests.</p>
+<ul>
+<li>exacerbated by lack of concurrency control</li>
+</ul>
+<p><strong>data contention</strong> – contention over data, eg. number
+of transactions</p>
+<p><em>Thrashing</em>: the point at which additional transactions
+decrease throughput, as too many transactions are blocked or locking.
+Usually occurs when 30% of transactions are blocked.</p>
+</div>
+</div>
+<div id="timestamp-based-technique" class="section level2">
+<h2>Timestamp-based technique</h2>
+<p><strong>Timestamps</strong> are unique identifiers assigned to
+transactions in order of appearance that designate priority.</p>
+<ul>
+<li>done with system clock or logical increment</li>
+<li>“non-locking” technique, but does require short lock on data item to
+record timestamp</li>
+</ul>
+<div id="timestamp-ordering-techniques" class="section level3">
+<h3>Timestamp ordering techniques</h3>
+<p><strong>Timestamp ordering</strong> is when transactions are ordered
+by timestamps, equivalent to serial schedule where older transactions
+appear before younger ones. When <em>timestamp ordering</em> enforced,
+the order in which the data item is accessed cannot violate
+serializability order.</p>
+<ul>
+<li><code>read_TS(Q)</code> - read timestamp, youngest timestamp of
+transactions that have successfully read Q</li>
+<li><code>write_TS(Q)</code> - write timestamp, youngest timestamp of
+transactions that have successfully written to Q</li>
+</ul>
+<p><strong>Basic timestamp order</strong>: transaction Ti executed in
+timestamp order whenever Ti requests read/write operation.</p>
+<ul>
+<li>Ti timestamp compared with <code>read_TS(Q)</code> and
+<code>write_TS(Q)</code>. If timestamp order violated, system rolls back
+transaction and restarts with new timestamp.</li>
+<li>prone to <strong>cascading rollback</strong></li>
+</ul>
+<p><strong>Strict Timestamp Ordering</strong>: Basic timestamp ordering
++ additional read/write constraint to enforce a strict schedule. If Ti
+requests a read/write on Q and TS(Ti) &gt; write_TS(Q), Ti is delayed
+until the transaction Tj that wrote Q has committed or aborted.</p>
+<ul>
+<li>ensures deadlock freedom, since Ti waits for Tj iff TS(Ti) &gt;
+TS(Tj)</li>
+</ul>
+<p><strong>Thomas’ Write Rule</strong>: mod to basic timestamp ordering
+with different rules for write operations. Assume Ti wants to write on
+Q</p>
+<ul>
+<li>if TS(ti) &lt; read_TS(Q), write rejected, Ti rolled back</li>
+<li>if TS(Ti) &lt; write_TS(Q), write ignored (younger transaction
+overwrote what Ti would’ve written)</li>
+<li>otherwise executed</li>
+<li>does not enforce conflict serializability, but generates
+serializable schedules not possible with other techniques.</li>
+</ul>
+</div>
+</div>
+<div id="optimisticvalidation-technique" class="section level2">
+<h2>Optimistic/Validation Technique</h2>
+<p>Locking and timestamp ordering are named pessimistic techniques.
+Require check before executing read/write - can be expensive, especially
+when most transactions are read-only and conflict rates are low.</p>
+<p><strong>Optimistic techniques</strong> assume that transactions do
+not directly update data items until execution is finished – instead,
+transaction maintain local copies of data items.</p>
+<ul>
+<li><em>read phase</em>: Ti given timestamp Start(Ti). Reads values from
+database and stores in temporary local copies. All mods performed on
+copies.</li>
+<li><em>validation phase</em>: Ti given timestamp Validation(Ti). System
+performs validation test at commit - determine whether mods can copy to
+database and if there is conflict possibility. If conflict, Ti rolled
+back and restarts.</li>
+<li><em>write phase</em>: system copies mods to database.</li>
+</ul>
+<p>Validation(Ti) determines serializability order and is therefore used
+as the timestamp.</p>
+<p>Technique also requires that read_set and write_set of transaction be
+maintained by system. It requires that modifications made by a younger
+transactions are not visible to older transactions.</p>
+</div>
+<div id="multiversion-technique" class="section level2">
+<h2>Multiversion Technique</h2>
+<p>So far, we have enforced serializability by delaying an operation or
+aborting the requesting transaction. In <strong>multiversion</strong>,
+several versions/values of data item are maintained.</p>
+<ul>
+<li>write operations trigger creation of new old version</li>
+<li>transactions may read prior versions to ensure serializability</li>
+<li>main drawback: require more memory space.</li>
+</ul>
+<div id="multiversion-on-timestamp-ordering" class="section level3">
+<h3>Multiversion on Timestamp ordering</h3>
+<p>For each version of data item Qi, read_TS (youngest timestamp of
+reading transactions) and write_TS (timestamp of transaction that wrote
+version) are maintained. For transaction Ti with write_TS(Qi) &lt;
+TS(Ti):</p>
+<ul>
+<li>when Ti issues read request, system returns Qi and updates
+read_TS(Qi) if needed</li>
+<li>when Ti issues write request:
+<ul>
+<li>read_TS(Qi) &gt; TS(Ti) – rollback</li>
+<li>TS(Qi) = write_TS(Qi) – content overwritten</li>
+<li>otherwise, new version Qj made, read_TS(Qi) = write_TS(Qi) =
+TS(Ti)</li>
+</ul></li>
+<li>Advantage: read requests never blocked. Great for typical databases
+where reads more frequent than write</li>
+<li>Disadvantages:
+<ul>
+<li>read_TS(Qi) updated continuously, resulting in 2x disk access</li>
+<li>conflicting transactions result in rollback and possibly
+cascading</li>
+</ul></li>
+</ul>
+</div>
+<div id="multiversion-two-phase-locking" class="section level3">
+<h3>Multiversion Two-Phase Locking</h3>
+<p>In MTPL, other transactions can read data items while transaction
+holds exclusive locking.</p>
+<ul>
+<li>Two versions maintained for each data item
+<ul>
+<li><strong>certified version</strong>: written by committed
+transaction</li>
+<li><strong>uncertified</strong>: created when active transaction
+acquires exclusive lock</li>
+</ul></li>
+<li>Transactions can read most recent certified version</li>
+<li>On top of read and write locks, MTPL provides lock mode
+<strong>certify</strong>.
+<ul>
+<li>Acquired when transaction ready to commit.</li>
+</ul></li>
+<li>Advantage:
+<ul>
+<li>reads can execute concurrently along with a single write.</li>
+<li>avoids cascading rollbacks</li>
+</ul></li>
+<li>Disadvantage: overhead that transaction may delay commit until all
+certify locks acquired, possibility of deadlock</li>
+</ul>
+<pre class="r"><code>knitr::include_graphics(&quot;imgs/mtpl.png&quot;)</code></pre>
+<p><img src="imgs/mtpl.png" width="50%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="handling-deadlock" class="section level2">
+<h2>Handling Deadlock</h2>
+<p><strong>Deadlock</strong>: when transactions are in simulataneous
+wait state for release of data item held by another waiting
+transactions.</p>
+<p>Deadlock prevention ensures deadlock never happens. Usually used when
+deadlock chance is high:</p>
+<p><strong>Conservative 2PL</strong>: each transaction locks all data
+items needed during lifetime</p>
+<p><strong>Assigning an order to data items</strong>: ordering imposed
+on data items, transactions acquire locks in that order</p>
+<p><strong>Using timestamps + locking</strong>: transactions assigned
+priority determining whether they wait or rollback * most common
+approach – doesn’t require knowledge of all needed data items or limit
+concurrency * two different approaches for handling when a transaction
+asks for lock request on locked item * <strong>wait-die</strong>: if
+existing locking T has lower timestamp, keeps waiting; otherwise
+existing T rolled-back * <strong>wound-wait</strong>: if existing
+locking T has lower timestamp; new lock rolled back * may require many
+rollbacks! * both techniques avoid starvation, but may invoke
+unnecessary rollbacks may occur</p>
+<div id="deadlock-detection" class="section level3">
+<h3>Deadlock detection</h3>
+<p>If there’s little chance of interference among transactions, plus
+transactions are short and require few locks, use deadlock
+detection/recovery techniques.</p>
+<p>Use wait-for graph to detect deadlocks, with nodes of transactions
+and edges of waiting for another.</p>
+<p>Interval of invoking deadlock detection algorithm depends on balance
+between overhead and deadlock detection</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
